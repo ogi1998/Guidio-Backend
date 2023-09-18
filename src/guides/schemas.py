@@ -8,10 +8,11 @@ from users.schemas import UserReadSchema
 class GuideListSingleSchema(BaseModelSchema):
     guide_id: int
     title: str
-    last_modified: datetime
-    published: bool
     cover_image: str | None
-    user: UserReadSchema
+    user_id: int
+    avatar: str | None
+    cover_image: str | None
+    profession: str | None
 
     class Config:
         orm_mode = True

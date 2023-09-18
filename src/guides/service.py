@@ -1,7 +1,8 @@
-from sqlalchemy import asc, desc
-from sqlalchemy.orm import Session
+from sqlalchemy import asc, desc, func
+from sqlalchemy.orm import Session, Query
 
-from core.models import Guide, User
+from core.models import Guide, User, Profession, UserDetail
+from guides.constants import RetrieveOrder
 from guides.schemas import GuideCreateUpdateSchema
 
 
@@ -21,29 +22,48 @@ def count_published_guides_pages(db: Session, page_size: int):
     return pages
 
 
-def get_list_of_guides(db: Session, page: int, page_size: int) -> list[Guide] | None:
-    offset: int = page * page_size
-    guides: list[Guide] = db.query(Guide) \
-        .filter(Guide.published) \
-        .order_by(desc(Guide.last_modified)) \
-        .offset(offset).limit(page_size).all()
+def get_initial_list_of_guides(db: Session,
+                               search: str = '') -> Query | None:
+    guides = db.query(
+        Guide.guide_id,
+        Guide.title,
+        Guide.cover_image,
+        UserDetail.avatar,
+        User.user_id,
+        Profession.name.label('profession')) \
+        .filter(Guide.user_id == User.user_id, User.user_id == UserDetail.user_id,
+                UserDetail.profession_id == Profession.profession_id,
+                func.coalesce(Guide.title, '').ilike(f"%{search}%"),
+                )
     return guides
 
 
-def get_list_of_guides_ascending(db: Session, page: int, page_size: int) -> list[Guide] | None:
+def get_list_of_guides(db: Session,
+                       page: int,
+                       page_size: int,
+                       sort_order: str = RetrieveOrder.descending,
+                       search: str = '',
+                       published_only: bool = True) -> list | None:
     offset: int = page * page_size
-    guides = db.query(Guide) \
-        .filter(Guide.published) \
-        .order_by(asc(Guide.last_modified)) \
-        .offset(offset).limit(page_size).all()
+
+    if sort_order == RetrieveOrder.descending:
+        order_by_clause = desc(Guide.last_modified)
+    else:
+        order_by_clause = asc(Guide.last_modified)
+
+    query = get_initial_list_of_guides(db, search=search)
+
+    if published_only:
+        guides = query.filter(Guide.published) \
+            .order_by(order_by_clause).offset(offset).limit(page_size).all()
+    else:
+        guides = query.order_by(order_by_clause).offset(offset).limit(page_size).all()
+
     return guides
 
 
-def search_guides(db: Session, title: str, page: int, page_size: int) -> list[Guide] | None:
-    offset: int = page * page_size
-    guides = db.query(Guide).filter(Guide.title.ilike(f"%{title}%")) \
-        .filter(Guide.published) \
-        .order_by(desc(Guide.last_modified)).offset(offset).limit(page_size).all()
+def search_guides(db: Session, title: str, page: int, page_size: int) -> list | None:
+    guides: list = get_list_of_guides(db, page=page, page_size=page_size, search=title)
     return guides
 
 
@@ -51,17 +71,11 @@ def get_guides_by_user_id(db: Session,
                           user_id: int,
                           page: int,
                           page_size: int,
-                          user: User) -> list[Guide] | None:
-    offset = page * page_size
+                          user: User) -> list | None:
     if user.user_id == user_id:
-        guides = db.query(Guide) \
-            .filter(Guide.user_id == user_id) \
-            .order_by(desc(Guide.last_modified)).offset(offset).limit(page_size).all()
+        guides = get_list_of_guides(db, page=page, page_size=page_size, published_only=False)
     else:
-        guides = db.query(Guide) \
-            .filter(Guide.user_id == user_id) \
-            .filter(Guide.published) \
-            .order_by(desc(Guide.last_modified)).offset(offset).limit(page_size).all()
+        guides = get_list_of_guides(db, page=page, page_size=page_size, published_only=True)
     return guides
 
 
