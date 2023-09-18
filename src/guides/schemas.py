@@ -2,17 +2,13 @@ from pydantic import Field
 from datetime import datetime
 
 from core.schemas import BaseModelSchema
-from users.schemas import UserReadSchema
+from users.schemas import UserReadSchema, UserListReadSchema
 
 
 class GuideListSingleSchema(BaseModelSchema):
     guide_id: int
     title: str
-    cover_image: str | None
-    user_id: int
-    avatar: str | None
-    cover_image: str | None
-    profession: str | None
+    user: UserListReadSchema
 
     class Config:
         orm_mode = True

@@ -84,6 +84,13 @@ class UserProfileUpdateSchema(UserBaseSchema):
         }
 
 
+class UserListReadSchema(BaseModelSchema):
+    user_id: int
+    avatar: str | None
+    cover_image: str | None
+    profession: str | None
+
+
 class UserReadSchema(UserBaseSchema):
     user_id: int
     is_active: bool

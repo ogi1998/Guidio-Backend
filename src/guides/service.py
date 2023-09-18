@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session, Query
 
 from core.models import Guide, User, Profession, UserDetail
 from guides.constants import RetrieveOrder
-from guides.schemas import GuideCreateUpdateSchema
+from guides.schemas import GuideCreateUpdateSchema, GuideListSingleSchema
+from users.schemas import UserListReadSchema
 
 
 def count_pages(db: Session, page_size: int):
@@ -58,8 +59,20 @@ def get_list_of_guides(db: Session,
             .order_by(order_by_clause).offset(offset).limit(page_size).all()
     else:
         guides = query.order_by(order_by_clause).offset(offset).limit(page_size).all()
-
-    return guides
+    guides_list: list[GuideListSingleSchema] = []
+    for record in guides:
+        print(record)
+        guides_list.append(GuideListSingleSchema(
+            guide_id=record[0],
+            title=record[1],
+            user=UserListReadSchema(
+                cover_image=record[2],
+                avatar=record[3],
+                user_id=record[4],
+                profession=record[5]
+            )
+        ))
+    return guides_list
 
 
 def search_guides(db: Session, title: str, page: int, page_size: int) -> list | None:
