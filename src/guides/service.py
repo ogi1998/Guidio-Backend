@@ -61,7 +61,6 @@ def get_list_of_guides(db: Session,
         guides = query.order_by(order_by_clause).offset(offset).limit(page_size).all()
     guides_list: list[GuideListSingleSchema] = []
     for record in guides:
-        print(record)
         guides_list.append(GuideListSingleSchema(
             guide_id=record[0],
             title=record[1],
