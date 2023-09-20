@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, Text, ForeignKey
 from sqlalchemy.orm import relationship
 
@@ -42,6 +44,19 @@ class User(Base):
 
 class UserDetail(Base):
     __tablename__ = "user_detail"
+
+    def __init__(self, user_id: int, profession_id=None, bio="", linkedin="", github="", website="",
+                 is_instructor=False, avatar=None, cover_image=None, *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self.user_id = user_id
+        self.profession_id = profession_id
+        self.bio = bio
+        self.linkedin = linkedin
+        self.github = github
+        self.website = website
+        self.is_instructor = is_instructor
+        self.avatar = avatar
+        self.cover_image = cover_image
 
     user_detail_id = Column(Integer, primary_key=True)
     profession_id = Column(Integer, ForeignKey('profession.profession_id', ondelete="SET NULL"),

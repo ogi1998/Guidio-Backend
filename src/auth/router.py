@@ -17,14 +17,11 @@ router = APIRouter()
              status_code=status.HTTP_201_CREATED,
              response_model=UserIDSchema)
 def register_user(data: schemas.RegistrationSchemaUser, db=DBDependency) -> UserIDSchema:
-    try:
-        user_id: int = service.create_user(db, data)
-        return UserIDSchema(user_id=user_id)
-    except exc.IntegrityError as e:
-        error_info = e.orig.args
-        if service.find_detail_in_error("email", error_info):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="User with specified email already exists")
+    user_id: int = service.create_user(db, data)
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="User with specified email already exists")
+    return UserIDSchema(user_id=user_id)
 
 
 @router.post(path="/login",
