@@ -1,12 +1,11 @@
 from fastapi import APIRouter, HTTPException, status, Response, Depends
-from sqlalchemy import exc
 from starlette.responses import JSONResponse
 
 from auth import schemas, service, exceptions
 from auth.dependencies import ValidToken
 from auth.service import get_current_user
 from core.dependencies import DBDependency
-from core.models import User, UserDetail
+from core.models import User
 from core.settings import AUTH_TOKEN
 from users.schemas import UserIDSchema, UserReadSchema
 
