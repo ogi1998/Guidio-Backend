@@ -28,7 +28,8 @@ def get_initial_list_of_guides(db: Session,
     guides = db.query(
         Guide.guide_id,
         Guide.title,
-        Guide.cover_image,
+        Guide.published,
+        UserDetail.cover_image,
         UserDetail.avatar,
         User.user_id,
         Profession.name.label('profession')) \
@@ -64,11 +65,12 @@ def get_list_of_guides(db: Session,
         guides_list.append(GuideListSingleSchema(
             guide_id=record[0],
             title=record[1],
+            published=record[2],
             user=UserListReadSchema(
-                cover_image=record[2],
-                avatar=record[3],
-                user_id=record[4],
-                profession=record[5]
+                cover_image=record[3],
+                avatar=record[4],
+                user_id=record[5],
+                profession=record[6]
             )
         ))
     return guides_list

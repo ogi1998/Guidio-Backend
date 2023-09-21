@@ -8,6 +8,7 @@ from users.schemas import UserReadSchema, UserListReadSchema
 class GuideListSingleSchema(BaseModelSchema):
     guide_id: int
     title: str
+    published: bool
     user: UserListReadSchema
 
     class Config:
