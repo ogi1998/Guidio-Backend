@@ -12,7 +12,7 @@ from auth import schemas
 from auth.dependencies import has_valid_token
 from auth.exceptions import invalid_credentials_exception, token_exception
 from core.dependencies import DBDependency
-from core.models import User
+from core.models import User, UserDetail
 
 # CONSTANTS
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -119,8 +119,22 @@ def authenticate_user(email: str, password: str, db: Session) -> User | bool:
     return user
 
 
-def create_user(db: Session, data: schemas.RegistrationSchemaUser) -> User.user_id:
-    """Create user in database and return created object
+def check_account_existence_by_email(db: Session, email: str) -> bool:
+    """Check if user exist based on provided email
+
+    Args:
+        db (Session): database session
+        email (str): provided email
+    Returns:
+        bool: True if user object exist in the database or None
+    """
+    return db.query(User).filter(User.email == email).first()
+
+
+def create_user(db: Session, data: schemas.RegistrationSchemaUser) -> User.user_id | None:
+    """ If user doesn't already exist, create user in database and return created object id.
+    Also create UserDetail.
+    If user already exist, return None.
 
     Args:
         db (Session): database Session
@@ -131,8 +145,11 @@ def create_user(db: Session, data: schemas.RegistrationSchemaUser) -> User.user_
             password (str): plain password that will be stored as hash
 
     Returns:
-        object: User object after creation
+        object id | None: User object id or None
     """
+    account_exist: bool = check_account_existence_by_email(db, data.email)
+    if account_exist:
+        return None
     db_user = User()
     db_user.email = data.email
     db_user.first_name = data.first_name
@@ -140,6 +157,10 @@ def create_user(db: Session, data: schemas.RegistrationSchemaUser) -> User.user_
     hashed_password = get_password_hash(data.password)
     db_user.password = hashed_password
     db.add(db_user)
+    db.commit()
+    # create user details
+    user_detail = UserDetail(user_id=db_user.user_id)
+    db.add(user_detail)
     db.commit()
     db.refresh(db_user)
     return db_user.user_id

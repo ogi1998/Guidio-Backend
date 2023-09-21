@@ -4,13 +4,12 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import UploadFile
-from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from auth.service import get_password_hash
 from core.constants import MEDIA_ROOT
 from core.models import User, UserDetail, Profession, Guide
-from users.schemas import UserProfileUpdateSchema, UserPasswordUpdateSchema
+from users.schemas import UserProfileUpdateSchema, UserPasswordUpdateSchema, UserDetailUpdateSchema
 
 
 def create_upload_path(directory: str, filename: str):
@@ -144,30 +143,35 @@ def get_user_profile_by_id(user_id: int, db: Session) -> User | None:
     return user
 
 
+def update_user_details(data: UserDetailUpdateSchema, db: Session, db_user: User):
+    user_detail: UserDetail = db.query(UserDetail) \
+        .filter(UserDetail.user_id == db_user.user_id).first()
+    if user_detail:
+        user_detail.linkedin = data.linkedin
+        user_detail.github = data.github
+        user_detail.website = data.website
+        user_detail.is_instructor = data.is_instructor
+        user_detail.bio = data.bio
+        user_detail.profession_id = data.profession_id
+    else:
+        new_user_detail = UserDetail(user_id=db_user.user_id,
+                                     linkedin=data.linkedin,
+                                     github=data.github,
+                                     website=data.website,
+                                     is_instructor=data.is_instructor,
+                                     bio=data.bio,
+                                     profession_id=data.profession_id)
+        db.add(new_user_detail)
+    db.commit()
+
+
 def update_user_profile(data: UserProfileUpdateSchema,
                         db: Session, db_user: User) -> User:
     db_user.email = data.email
     db_user.first_name = data.first_name
     db_user.last_name = data.last_name
-    user_detail: UserDetail = db.query(UserDetail) \
-        .filter(UserDetail.user_id == db_user.user_id).first()
-    if user_detail:
-        user_detail.linkedin = data.user_details.linkedin
-        user_detail.github = data.user_details.github
-        user_detail.website = data.user_details.website
-        user_detail.is_instructor = data.user_details.is_instructor
-        user_detail.bio = data.user_details.bio
-        user_detail.profession_id = data.user_details.profession_id
-    else:
-        new_user_detail = UserDetail(user_id=db_user.user_id,
-                                     linkedin=data.user_details.linkedin,
-                                     github=data.user_details.github,
-                                     website=data.user_details.website,
-                                     is_instructor=data.user_details.is_instructor,
-                                     bio=data.user_details.bio,
-                                     profession_id=data.user_details.profession_id)
-        db.add(new_user_detail)
 
+    update_user_details(data.user_details, db, db_user)
     # Update guides if is_instructor is set to false
     if not data.user_details.is_instructor:
         guides = db.query(Guide).filter(Guide.user_id == db_user.user_id).all()
