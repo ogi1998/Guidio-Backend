@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, status, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, status, HTTPException, Response, UploadFile, Query
 
 from auth.dependencies import ValidToken
 from auth.exceptions import invalid_credentials_exception
 from auth.service import get_current_user, verify_password
 from core.dependencies import DBDependency
+from core.exceptions import non_existent_page_exception
 from core.models import User
 from core.settings import AUTH_TOKEN
 from users import service, schemas
@@ -28,6 +29,24 @@ def get_profession_by_name(name: str,
 def get_instructors(db=DBDependency) -> list[schemas.UserReadSchema]:
     instructors = service.get_instructors(db)
     return instructors
+
+
+@router.get(path="/instructors/search",
+            dependencies=[ValidToken],
+            status_code=status.HTTP_200_OK,
+            description="Retrieve instructors via search",
+            response_model=schemas.UserReadSchemaWithPages)
+def search_instructors(search: str,
+                       page: int = Query(default=1, ge=1, description="Page to request"),
+                       page_size: int = Query(default=50, ge=1, le=100, description="Page size"),
+                       db=DBDependency):
+    total_pages = service.get_number_of_instructors_from_search(db, search, page_size)
+    if page > total_pages:
+        raise non_existent_page_exception()
+    instructors = service.get_paginated_instructors_by_search(db, page=page - 1,
+                                                              page_size=page_size,
+                                                              search=search)
+    return schemas.UserReadSchemaWithPages(pages=total_pages, users=instructors)
 
 
 @router.get(path="/avatar",

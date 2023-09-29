@@ -101,6 +101,11 @@ class UserReadSchema(UserBaseSchema):
         orm_mode = True
 
 
+class UserReadSchemaWithPages(BaseModelSchema):
+    pages: int
+    users: list[UserReadSchema]
+
+
 class UserPasswordUpdateSchema(UserPasswordSchema):
     current_password: str
 

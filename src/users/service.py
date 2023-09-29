@@ -4,12 +4,35 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import UploadFile
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from auth.service import get_password_hash
 from core.constants import MEDIA_ROOT
 from core.models import User, UserDetail, Profession, Guide
 from users.schemas import UserProfileUpdateSchema, UserPasswordUpdateSchema, UserDetailUpdateSchema
+
+
+def get_instructors_by_search(db: Session, search: str):
+    return db.query(User).filter(or_(
+        User.first_name.ilike(f"%{search}%"),
+        User.last_name.ilike(f"%{search}%")
+    )).join(UserDetail).filter(UserDetail.is_instructor)
+
+
+def get_paginated_instructors_by_search(db: Session, page: int, page_size: int, search: str):
+    offset: int = page * page_size
+    return (get_instructors_by_search(db, search)
+            .offset(offset).limit(page_size).all())
+
+
+def get_number_of_instructors_from_search(db: Session,
+                                          search: str,
+                                          page_size: int):
+    count_of_instructors = len(get_instructors_by_search(db, search).all())
+    division: tuple[int, int] = divmod(count_of_instructors, page_size)
+    pages: int = division[0] + 1 if division[1] else division[0]
+    return pages
 
 
 def create_upload_path(directory: str, filename: str):
