@@ -81,6 +81,7 @@ class Guide(Base):
     guide_id = Column(Integer, primary_key=True, index=True)
     title = Column(String(70), nullable=False)
     content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     last_modified = Column(DateTime(timezone=True), server_default=func.now(),
                            onupdate=func.current_timestamp(), nullable=False)
     published = Column(Boolean, default=False, nullable=False)

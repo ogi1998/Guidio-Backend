@@ -25,6 +25,7 @@ bcrypt = "^4.0.1"
 
 [tool.poetry.scripts]
 guidio = "src.main:main"
+migrate = "migrate:run_alembic_upgrade"
 
 [build-system]
 requires = ["poetry-core"]
