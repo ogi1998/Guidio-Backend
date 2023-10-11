@@ -148,6 +148,7 @@ def delete_cover_image(db: Session, user: User):
 
 
 def get_paginated_instructors(db: Session, offset, limit) -> UserReadSchemaWithPages:
+    offset: int = offset * limit
     all_instructors = db.query(User).join(User.user_details) \
         .filter(UserDetail.is_instructor)
     paginated_instructors: list[User] = all_instructors.offset(offset).limit(limit).all()
