@@ -2,8 +2,9 @@ from sqlalchemy import asc, desc, func
 from sqlalchemy.orm import Session, Query
 
 from core.models import Guide, User, Profession, UserDetail
+from core.service import count_number_of_pages
 from guides.constants import RetrieveOrder
-from guides.schemas import GuideCreateUpdateSchema, GuideListSingleSchema
+from guides.schemas import GuideCreateUpdateSchema, GuideListSingleSchema, GuideListReadSchema
 from users.schemas import UserListReadSchema
 
 
@@ -46,7 +47,7 @@ def get_list_of_guides(db: Session,
                        page_size: int,
                        sort_order: str = RetrieveOrder.descending,
                        search: str = '',
-                       published_only: bool = True) -> list | None:
+                       published_only: bool = True) -> GuideListReadSchema | None:
     offset: int = page * page_size
 
     if sort_order == RetrieveOrder.descending:
@@ -55,12 +56,13 @@ def get_list_of_guides(db: Session,
         order_by_clause = asc(Guide.last_modified)
 
     query = get_initial_list_of_guides(db, search=search)
-
     if published_only:
         guides = query.filter(Guide.published) \
-            .order_by(order_by_clause).offset(offset).limit(page_size).all()
+            .order_by(order_by_clause)
     else:
-        guides = query.order_by(order_by_clause).offset(offset).limit(page_size).all()
+        guides = query.order_by(order_by_clause)
+    pages: int = count_number_of_pages(guides.count(), page_size)
+    guides = guides.offset(offset).limit(page_size).all()
     guides_list: list[GuideListSingleSchema] = []
     for record in guides:
         guides_list.append(GuideListSingleSchema(
@@ -75,12 +77,12 @@ def get_list_of_guides(db: Session,
                 profession=record[7]
             )
         ))
-    return guides_list
+    return GuideListReadSchema(pages=pages, guides=guides_list)
 
 
-def search_guides(db: Session, title: str, page: int, page_size: int) -> list | None:
-    guides: list = get_list_of_guides(db, page=page, page_size=page_size, search=title)
-    return guides
+def search_guides(db: Session, title: str, page: int, page_size: int) -> GuideListReadSchema | None:
+    guides = get_list_of_guides(db, page=page, page_size=page_size, search=title)
+    return GuideListReadSchema(pages=guides.pages, guides=guides.guides)
 
 
 def get_guides_by_user_id(db: Session,

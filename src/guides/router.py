@@ -4,8 +4,8 @@ from auth.dependencies import ValidToken
 from auth.exceptions import invalid_credentials_exception
 from auth.service import get_current_user
 from core.dependencies import DBDependency
-from core.models import User
 from core.exceptions import non_existent_page_exception
+from core.models import User
 from guides import schemas
 from guides import service
 from guides.constants import RetrieveOrder
@@ -23,17 +23,16 @@ def get_list_of_guides(db=DBDependency,
                                                     description="Retrieve order: asc/desc"),
                        page: int = Query(default=1, ge=1, description="Page to request"),
                        page_size: int = Query(default=50, ge=1, le=100, description="Page size")):
-    total_pages = service.count_published_guides_pages(db, page_size)
     guides = service.get_list_of_guides(db,
                                         page=page - 1,
                                         page_size=page_size,
                                         sort_order=order,
                                         published_only=True)
-    if not guides:
+    if not guides.guides:
         raise guides_not_found_exception()
-    if page > total_pages:
+    if page > guides.pages:
         raise non_existent_page_exception()
-    return schemas.GuideListReadSchema(pages=total_pages, guides=guides)
+    return schemas.GuideListReadSchema(pages=guides.pages, guides=guides.guides)
 
 
 @router.post(path="",
@@ -61,13 +60,12 @@ def get_guides_by_title(title: str,
                         page: int = Query(default=1, ge=1, description="Page to request"),
                         page_size: int = Query(default=50, ge=1, le=100, description="Page size"),
                         db=DBDependency):
-    total_pages = service.count_published_guides_pages(db, page_size)
     guides = service.search_guides(db, title, page=page-1, page_size=page_size)
-    if not guides:
+    if not guides.guides:
         raise guides_not_found_exception()
-    if page > total_pages:
+    if page > guides.pages:
         raise non_existent_page_exception()
-    return schemas.GuideListReadSchema(pages=total_pages, guides=guides)
+    return guides
 
 
 @router.get(path="/{user_id}",
