@@ -25,9 +25,13 @@ def get_profession_by_name(name: str,
 @router.get(path="/instructors",
             dependencies=[ValidToken],
             description="Get list of users who are instructors",
-            response_model=list[schemas.UserReadSchema])
-def get_instructors(db=DBDependency) -> list[schemas.UserReadSchema]:
-    instructors = service.get_instructors(db)
+            response_model=schemas.UserReadSchemaWithPages)
+def get_instructors(page: int = Query(default=1, ge=1, description="Page to request"),
+                    page_size: int = Query(default=50, ge=1, le=100, description="Page size"),
+                    db=DBDependency) -> schemas.UserReadSchemaWithPages:
+    instructors = service.get_paginated_instructors(db, page - 1, page_size)
+    if page > instructors.pages:
+        raise non_existent_page_exception()
     return instructors
 
 

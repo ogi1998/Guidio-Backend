@@ -10,7 +10,9 @@ from sqlalchemy.orm import Session
 from auth.service import get_password_hash
 from core.constants import MEDIA_ROOT
 from core.models import User, UserDetail, Profession, Guide
-from users.schemas import UserProfileUpdateSchema, UserPasswordUpdateSchema, UserDetailUpdateSchema
+from core.service import count_number_of_pages
+from users.schemas import UserProfileUpdateSchema, UserPasswordUpdateSchema, UserDetailUpdateSchema, \
+    UserReadSchemaWithPages
 
 
 def get_instructors_by_search(db: Session, search: str):
@@ -145,10 +147,14 @@ def delete_cover_image(db: Session, user: User):
     return None
 
 
-def get_instructors(db: Session) -> list[User]:
-    instructors = db.query(User).join(User.user_details) \
-        .filter(UserDetail.is_instructor).all()
-    return instructors
+def get_paginated_instructors(db: Session, offset, limit) -> UserReadSchemaWithPages:
+    offset: int = offset * limit
+    all_instructors = db.query(User).join(User.user_details) \
+        .filter(UserDetail.is_instructor)
+    paginated_instructors: list[User] = all_instructors.offset(offset).limit(limit).all()
+    count_of_instructors: int = all_instructors.count()
+    pages: int = count_number_of_pages(count_of_instructors, limit)
+    return UserReadSchemaWithPages(pages=pages, users=paginated_instructors)
 
 
 def get_profession_by_id(db: Session, profession_id: int) -> Profession | None:
