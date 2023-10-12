@@ -78,20 +78,16 @@ def get_guides_by_user_id(user_id: int,
                           page_size: int = Query(default=50, ge=1, le=100, description="Page size"),
                           db=DBDependency,
                           user: User = Depends(get_current_user)):
-    if user.user_id == user_id:
-        total_pages = service.count_pages(db, page_size)
-    else:
-        total_pages = service.count_published_guides_pages(db, page_size)
     guides = service.get_guides_by_user_id(db=db,
                                            user_id=user_id,
                                            page=page - 1,
                                            page_size=page_size,
                                            user=user)
-    if not guides:
+    if not guides.guides:
         raise guides_not_found_exception()
-    if page > total_pages:
+    if page > guides.pages:
         raise non_existent_page_exception()
-    return schemas.GuideListReadSchema(pages=total_pages, guides=guides.guides)
+    return schemas.GuideListReadSchema(pages=guides.pages, guides=guides.guides)
 
 
 @router.get("/guide/{guide_id}",

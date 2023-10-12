@@ -49,7 +49,8 @@ def get_list_of_guides(db: Session,
                        page_size: int,
                        sort_order: str = RetrieveOrder.descending,
                        search: str = '',
-                       published_only: bool = True) -> GuideListReadSchema | None:
+                       published_only: bool = True,
+                       user_id: int = None) -> GuideListReadSchema | None:
     offset: int = page * page_size
 
     if sort_order == RetrieveOrder.descending:
@@ -59,10 +60,11 @@ def get_list_of_guides(db: Session,
 
     query = get_initial_list_of_guides(db, search=search)
     if published_only:
-        guides = query.filter(Guide.published) \
-            .order_by(order_by_clause)
+        guides = query.filter(Guide.published).order_by(order_by_clause)
     else:
         guides = query.order_by(order_by_clause)
+    if user_id:
+        guides = guides.filter(Guide.user_id == user_id)
     pages: int = count_number_of_pages(guides.count(), page_size)
     guides = guides.offset(offset).limit(page_size).all()
     guides_list: list[GuideListSingleSchema] = []
@@ -95,9 +97,11 @@ def get_guides_by_user_id(db: Session,
                           page_size: int,
                           user: User):
     if user.user_id == user_id:
-        guides = get_list_of_guides(db, page=page, page_size=page_size, published_only=False)
+        guides = get_list_of_guides(db, page=page, page_size=page_size,
+                                    published_only=False, user_id=user_id)
     else:
-        guides = get_list_of_guides(db, page=page, page_size=page_size, published_only=True)
+        guides = get_list_of_guides(db, page=page, page_size=page_size,
+                                    published_only=True, user_id=user_id)
     return guides
 
 
