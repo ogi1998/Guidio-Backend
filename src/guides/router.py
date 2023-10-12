@@ -91,7 +91,7 @@ def get_guides_by_user_id(user_id: int,
         raise guides_not_found_exception()
     if page > total_pages:
         raise non_existent_page_exception()
-    return schemas.GuideListReadSchema(pages=total_pages, guides=guides)
+    return schemas.GuideListReadSchema(pages=total_pages, guides=guides.guides)
 
 
 @router.get("/guide/{guide_id}",

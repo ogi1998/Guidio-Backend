@@ -93,7 +93,7 @@ def get_guides_by_user_id(db: Session,
                           user_id: int,
                           page: int,
                           page_size: int,
-                          user: User) -> list | None:
+                          user: User):
     if user.user_id == user_id:
         guides = get_list_of_guides(db, page=page, page_size=page_size, published_only=False)
     else:
