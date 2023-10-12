@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException, Query
+from fastapi import APIRouter, Depends, status, HTTPException, Query, UploadFile
 
 from auth.dependencies import ValidToken
 from auth.exceptions import invalid_credentials_exception
@@ -51,6 +51,82 @@ def create_guide(data: schemas.GuideCreateUpdateSchema,
     return guide
 
 
+@router.get(path="/cover_image",
+            dependencies=[ValidToken],
+            description="Get guide cover image",
+            response_model=schemas.GuideCoverImageSchema,
+            status_code=status.HTTP_200_OK)
+def get_cover_image(guide_id: int,
+                    user: User = Depends(get_current_user),
+                    db=DBDependency):
+    guide = service.get_guide_by_id(db, guide_id, user)
+    if not guide:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
+    if user.user_id != guide.user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    image = service.get_cover_image(guide)
+    if image is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Cover image not found")
+    return schemas.GuideCoverImageSchema(cover_image=image)
+
+
+@router.post(path="/cover_image",
+             dependencies=[ValidToken],
+             description="Create guide cover image",
+             response_model=schemas.GuideCoverImageSchema,
+             status_code=status.HTTP_201_CREATED)
+def create_cover_image(guide_id: int,
+                       file: UploadFile,
+                       db=DBDependency,
+                       user: User = Depends(get_current_user)):
+    guide = service.get_guide_by_id(db, guide_id, user)
+    if not guide:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
+    if user.user_id != guide.user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    saved = service.save_cover_image(file, db, guide)
+    return saved
+
+
+@router.put(path="/cover_image",
+            dependencies=[ValidToken],
+            description="Update guide cover image",
+            response_model=schemas.GuideCoverImageSchema,
+            status_code=status.HTTP_200_OK)
+def update_cover_image(guide_id: int,
+                       file: UploadFile,
+                       db=DBDependency,
+                       user: User = Depends(get_current_user)):
+    guide = service.get_guide_by_id(db, guide_id, user)
+    if not guide:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
+    if user.user_id != guide.user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    updated = service.save_cover_image(file, db, guide)
+    return updated
+
+
+@router.delete(path="/cover_image",
+               dependencies=[ValidToken],
+               description="Delete user cover image",
+               status_code=status.HTTP_204_NO_CONTENT)
+def delete_cover_image(guide_id: int,
+                       db=DBDependency,
+                       user: User = Depends(get_current_user)):
+    guide = service.get_guide_by_id(db, guide_id, user)
+    if not guide:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
+    if user.user_id != guide.user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    image = guide.cover_image
+    if image is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Cover image not found")
+    service.delete_cover_image(db, guide)
+    return None
+
+
 @router.get(path="/search",
             dependencies=[ValidToken],
             description="Search guides by title",
@@ -60,7 +136,7 @@ def get_guides_by_title(title: str,
                         page: int = Query(default=1, ge=1, description="Page to request"),
                         page_size: int = Query(default=50, ge=1, le=100, description="Page size"),
                         db=DBDependency):
-    guides = service.search_guides(db, title, page=page-1, page_size=page_size)
+    guides = service.search_guides(db, title, page=page - 1, page_size=page_size)
     if not guides.guides:
         raise guides_not_found_exception()
     if page > guides.pages:

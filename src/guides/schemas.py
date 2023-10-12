@@ -1,8 +1,16 @@
-from pydantic import Field
 from datetime import datetime
+
+from pydantic import Field
 
 from core.schemas import BaseModelSchema
 from users.schemas import UserReadSchema, UserListReadSchema
+
+
+class GuideCoverImageSchema(BaseModelSchema):
+    cover_image: str | None
+
+    class Config:
+        orm_mode = True
 
 
 class GuideListSingleSchema(BaseModelSchema):
@@ -11,6 +19,7 @@ class GuideListSingleSchema(BaseModelSchema):
     published: bool
     created_at: datetime
     last_modified: datetime
+    cover_image: str | None
     user: UserListReadSchema
 
     class Config:
@@ -33,6 +42,7 @@ class GuideReadSchema(GuideCreateUpdateSchema):
     guide_id: int
     created_at: datetime
     last_modified: datetime
+    cover_image: str | None
     user: UserReadSchema
 
     class Config:

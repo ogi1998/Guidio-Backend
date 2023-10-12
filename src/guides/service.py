@@ -1,11 +1,36 @@
+import os
+import shutil
+from datetime import datetime
+from pathlib import Path
+
+from fastapi import UploadFile
 from sqlalchemy import asc, desc, func
 from sqlalchemy.orm import Session, Query
 
+from core.constants import MEDIA_ROOT
 from core.models import Guide, User, Profession, UserDetail
 from core.service import count_number_of_pages
 from guides.constants import RetrieveOrder
 from guides.schemas import GuideCreateUpdateSchema, GuideListSingleSchema, GuideListReadSchema
 from users.schemas import UserListReadSchema
+
+
+def create_upload_path(directory: str, filename: str):
+    if not os.path.exists(directory):
+        Path(directory).mkdir(parents=True, exist_ok=True)
+    if not os.path.exists(directory + filename):
+        filename_parts = filename.split(".")
+        timestamp = str(int(datetime.now().timestamp()))
+        filename = "".join(filename_parts[:-1]) + "_" + timestamp + "." + filename_parts[-1]
+    open(f'{directory}{filename}', 'wb').close()
+    return directory + filename
+
+
+def cover_image_upload_path(guide_id: str, filename: str):
+    directory = f"{MEDIA_ROOT}/guides/{guide_id}/cover_image/"
+    path = create_upload_path(directory, filename)
+    path_to_save = 'media' + path.split('media')[1]
+    return path_to_save
 
 
 def count_pages(db: Session, page_size: int):
@@ -32,6 +57,7 @@ def get_initial_list_of_guides(db: Session,
         Guide.published,
         Guide.created_at,
         Guide.last_modified,
+        Guide.cover_image,
         User.first_name,
         User.last_name,
         UserDetail.avatar,
@@ -73,12 +99,13 @@ def get_list_of_guides(db: Session,
             published=record[2],
             created_at=record[3],
             last_modified=record[4],
+            cover_image=record[5],
             user=UserListReadSchema(
-                first_name=record[5],
-                last_name=record[6],
-                avatar=record[7],
-                user_id=record[8],
-                profession=record[9]
+                first_name=record[6],
+                last_name=record[7],
+                avatar=record[8],
+                user_id=record[9],
+                profession=record[10]
             )
         ))
     return GuideListReadSchema(pages=pages, guides=guides_list)
@@ -125,6 +152,46 @@ def save_guide(db: Session,
     db.commit()
     db.refresh(guide)
     return guide
+
+
+def get_cover_image(guide: Guide) -> str | None:
+    if not guide.cover_image:
+        return None
+    return guide.cover_image
+
+
+def save_cover_image(file: UploadFile, db: Session, guide: Guide) -> Guide:
+    """Check if cover image exists and create it if not. If it exists then do the update"""
+
+    old_cover_image = guide.cover_image
+
+    file_path = cover_image_upload_path(str(guide.guide_id), file.filename)
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    finally:
+        file.file.close()
+
+    guide.cover_image = file_path
+
+    db.add(guide)
+    db.commit()
+
+    if old_cover_image and os.path.exists(old_cover_image):
+        os.remove(old_cover_image)
+
+    return guide
+
+
+def delete_cover_image(db: Session, guide: Guide) -> None:
+    image = guide.cover_image
+
+    if os.path.exists(image):
+        os.remove(image)
+    guide.cover_image = None
+    db.add(guide)
+    db.commit()
+    return None
 
 
 def delete_guide(db: Session, guide_id: int) -> None:
