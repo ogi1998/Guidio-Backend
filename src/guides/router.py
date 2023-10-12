@@ -62,8 +62,6 @@ def get_cover_image(guide_id: int,
     guide = service.get_guide_by_id(db, guide_id, user)
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
-    if user.user_id != guide.user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
     image = service.get_cover_image(guide)
     if image is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -212,4 +210,4 @@ def delete_guide(guide_id: int,
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
     if user.user_id != guide.user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
-    return service.delete_guide(db, guide_id)
+    return service.delete_guide(db, guide)

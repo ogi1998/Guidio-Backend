@@ -194,8 +194,8 @@ def delete_cover_image(db: Session, guide: Guide) -> None:
     return None
 
 
-def delete_guide(db: Session, guide_id: int) -> None:
-    guide = db.query(Guide).get(guide_id)
+def delete_guide(db: Session, guide: Guide) -> None:
+    delete_cover_image(db, guide)
     db.delete(guide)
     db.commit()
     return None
