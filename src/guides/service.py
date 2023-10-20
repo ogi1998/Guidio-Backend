@@ -15,6 +15,14 @@ from guides.schemas import GuideCreateUpdateSchema, GuideListSingleSchema, Guide
 from users.schemas import UserListReadSchema
 
 
+def prepare_guide_data(data: GuideCreateUpdateSchema) -> GuideCreateUpdateSchema:
+    title = data.title.strip()
+    content = data.content.strip()
+    note = data.note.strip() if data.note else None
+    return GuideCreateUpdateSchema(title=title, content=content,
+                                   note=note, published=data.published)
+
+
 def create_upload_path(directory: str, filename: str):
     if not os.path.exists(directory):
         Path(directory).mkdir(parents=True, exist_ok=True)

@@ -32,7 +32,7 @@ class GuideListReadSchema(BaseModelSchema):
 
 
 class GuideCreateUpdateSchema(BaseModelSchema):
-    title: str = Field(max_length=70)
+    title: str = Field(min_length=1, max_length=70)
     content: str
     note: str | None
     published: bool

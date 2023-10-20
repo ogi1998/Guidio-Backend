@@ -47,7 +47,8 @@ def create_guide(data: schemas.GuideCreateUpdateSchema,
         raise invalid_credentials_exception()
     if not user.user_details.is_instructor:
         raise not_instructor_exception()
-    guide = service.save_guide(db, data, user_id=user.user_id)
+    prepared_data = service.prepare_guide_data(data)
+    guide = service.save_guide(db, prepared_data, user_id=user.user_id)
     return guide
 
 
@@ -191,7 +192,8 @@ def update_guide(guide_id: int, data: schemas.GuideCreateUpdateSchema,
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
     if not user.user_details.is_instructor:
         raise not_instructor_exception()
-    return service.save_guide(db, data, user_id=user.user_id, guide=guide)
+    prepared_data = service.prepare_guide_data(data)
+    return service.save_guide(db, prepared_data, user_id=user.user_id, guide=guide)
 
 
 @router.delete(path="/{guide_id}",
