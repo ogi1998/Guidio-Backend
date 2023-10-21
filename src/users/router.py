@@ -162,7 +162,7 @@ def get_user_profile_by_id(user_id: int, db=DBDependency):
 def update_user_profile(user_id: int, data: schemas.UserProfileUpdateSchema, db=DBDependency,
                         user: User = Depends(get_current_user)):
     if user_id != user.user_id:
-        raise invalid_credentials_exception()
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
     if data.user_details.profession_id:
         profession = service.get_profession_by_id(db, data.user_details.profession_id)
         if not profession:
