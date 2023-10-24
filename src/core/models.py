@@ -27,6 +27,10 @@ class User(Base):
     password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_verified = Column(Boolean, default=False, nullable=True)
+    verified_on = Column(DateTime(timezone=True), default=None, nullable=True)
+    email_verification_token = (Column(String, default=None, nullable=True))
+    token_expiration = Column(DateTime(timezone=True), default=None, nullable=True)
 
     user_details = relationship("UserDetail",
                                 back_populates="user",
