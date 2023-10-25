@@ -190,7 +190,7 @@ def save_cover_image(file: UploadFile, db: Session, guide: Guide) -> Guide:
 def delete_cover_image(db: Session, guide: Guide) -> None:
     image = guide.cover_image
 
-    if os.path.exists(image):
+    if image and os.path.exists(image):
         os.remove(image)
     guide.cover_image = None
     db.add(guide)
