@@ -25,7 +25,7 @@ class User(Base):
     last_name = Column(String(150), nullable=False)
     email = Column(String(120), unique=True, index=True, nullable=False)
     password = Column(String, nullable=False)
-    is_active = Column(Boolean, default=True, nullable=False)
+    is_active = Column(Boolean, default=False, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user_details = relationship("UserDetail",
