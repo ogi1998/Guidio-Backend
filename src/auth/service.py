@@ -11,8 +11,10 @@ from sqlalchemy.orm import Session
 from auth import schemas
 from auth.dependencies import has_valid_token
 from auth.exceptions import invalid_credentials_exception, token_exception
+from core.constants import ACTIVATE_ACCOUNT_SUBJECT
 from core.dependencies import DBDependency
 from core.models import User, UserDetail
+from templates.mail import activation_email
 
 # CONSTANTS
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -163,4 +165,9 @@ def create_user(db: Session, data: schemas.RegistrationSchemaUser) -> User.user_
     db.add(user_detail)
     db.commit()
     db.refresh(db_user)
+
+    # send verification email to user
+    db_user.email_user(subject=ACTIVATE_ACCOUNT_SUBJECT,
+                       text_content="Activate your account",
+                       html_content=activation_email.html())
     return db_user.user_id
