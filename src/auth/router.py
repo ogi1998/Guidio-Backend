@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Response, Depends
+from fastapi import APIRouter, HTTPException, status, Request, Response, Depends
 from starlette.responses import JSONResponse
 
 from auth import schemas, service, exceptions
@@ -12,11 +12,22 @@ from users.schemas import UserIDSchema, UserReadSchema
 router = APIRouter()
 
 
+@router.get(path="/verify_email",
+            status_code=status.HTTP_200_OK)
+def verify_email(token: str, db=DBDependency):
+    user = get_current_user(token, db)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification failed")
+    service.activate_user(user, db)
+    return JSONResponse(content={"detail": "Activation successful"}, status_code=status.HTTP_200_OK)
+
+
 @router.post(path="/register",
              status_code=status.HTTP_201_CREATED,
              response_model=UserIDSchema)
-def register_user(data: schemas.RegistrationSchemaUser, db=DBDependency) -> UserIDSchema:
-    user_id: int = service.create_user(db, data)
+def register_user(request: Request, data: schemas.RegistrationSchemaUser,
+                  db=DBDependency) -> UserIDSchema:
+    user_id: int = service.create_user(request, db, data)
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="User with specified email already exists")

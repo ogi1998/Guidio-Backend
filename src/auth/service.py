@@ -1,9 +1,10 @@
 import os
 import re
+import base64
 from datetime import datetime, timedelta
 from typing import Match
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -61,16 +62,17 @@ def find_detail_in_error(substring: str, message: str) -> Match[str] | None:
 
 
 def create_auth_token(user_id: int) -> str:
-    """Create authentication jwt token for specific user
+    """Create authentication jwt token for a specific user
 
     Args:
         user_id (int): user id for which jwt token will be created
 
     Returns:
-        jwt token for specific user
+        jwt token for a specific user
     """
     token_creation_time = datetime.utcnow()
-    encode = {"sub": str(user_id), "iat": token_creation_time}
+    user_id_base64 = base64.b64encode(str(user_id).encode('utf-8')).decode('utf-8')
+    encode = {"sub": user_id_base64, "iat": token_creation_time}
     token_expiration_time = float(os.getenv("TOKEN_EXP_MINUTES"))
     expire = datetime.utcnow() + timedelta(minutes=token_expiration_time)
     encode.update({"exp": expire})
@@ -89,10 +91,11 @@ def get_current_user(token: str = Depends(has_valid_token), db=DBDependency):
     """
     try:
         payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
-        user_id: int = payload.get("sub")
+        user_id_base64 = payload.get("sub")
+        user_id = int(base64.b64decode(user_id_base64).decode('utf-8'))
         if user_id is None:
             raise invalid_credentials_exception()
-        user = db.query(User).get(user_id)
+        user: User = db.query(User).get(user_id)
         if user is None:
             return invalid_credentials_exception()
         return user
@@ -133,12 +136,14 @@ def check_account_existence_by_email(db: Session, email: str) -> bool:
     return db.query(User).filter(User.email == email).first()
 
 
-def create_user(db: Session, data: schemas.RegistrationSchemaUser) -> User.user_id | None:
+def create_user(request: Request, db: Session,
+                data: schemas.RegistrationSchemaUser) -> User.user_id | None:
     """ If user doesn't already exist, create user in database and return created object id.
     Also create UserDetail.
     If user already exist, return None.
 
     Args:
+        request (Request): request object to construct verification url
         db (Session): database Session
         data (schema): fields provided based on schema
             email (str): provided email for the registration
@@ -165,9 +170,17 @@ def create_user(db: Session, data: schemas.RegistrationSchemaUser) -> User.user_
     db.add(user_detail)
     db.commit()
     db.refresh(db_user)
-
-    # send verification email to user
+    token = create_auth_token(db_user.user_id)
+    base_url = str(request.base_url)
+    verification_url = f"{base_url}auth/verify_email?token={token}"
     db_user.email_user(subject=ACTIVATE_ACCOUNT_SUBJECT,
                        text_content="Activate your account",
-                       html_content=activation_email.html())
+                       html_content=activation_email.html(first_name=db_user.first_name,
+                                                          url=verification_url))
     return db_user.user_id
+
+
+def activate_user(user: User, db: Session) -> None:
+    user.is_active = True
+    db.commit()
+    return
