@@ -8,7 +8,7 @@ class RegistrationSchemaUser(schemas.UserBaseSchema, UserPasswordSchema):
     pass
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "email": "john@guidio.com",
                 "first_name": "John",
@@ -23,7 +23,7 @@ class LoginSchema(BaseModelSchema):
     password: str
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "email": "john@guidio.com",
                 "password": "examplePassword123!",

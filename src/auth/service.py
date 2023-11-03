@@ -15,7 +15,6 @@ from auth.exceptions import invalid_credentials_exception, token_exception
 from core.constants import ACTIVATE_ACCOUNT_SUBJECT
 from core.dependencies import DBDependency
 from core.models import User, UserDetail
-from templates.mail import activation_email
 
 # CONSTANTS
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -173,10 +172,8 @@ def create_user(request: Request, db: Session,
     token = create_auth_token(db_user.user_id)
     base_url = str(request.base_url)
     verification_url = f"{base_url}auth/verify_email?token={token}"
-    db_user.email_user(subject=ACTIVATE_ACCOUNT_SUBJECT,
-                       text_content="Activate your account",
-                       html_content=activation_email.html(first_name=db_user.first_name,
-                                                          url=verification_url))
+    db_user.email_user(body={"first_name": db_user.first_name, "url": verification_url},
+                       template_name="activation_email.html")
     return db_user.user_id
 
 

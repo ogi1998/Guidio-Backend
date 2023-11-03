@@ -8,7 +8,7 @@ class ProfessionReadSchema(BaseModelSchema):
     name: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserDetailSchema(BaseModelSchema):
@@ -22,21 +22,21 @@ class UserDetailSchema(BaseModelSchema):
     profession: ProfessionReadSchema | None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserAvatarSchema(BaseModelSchema):
     avatar: str | None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserCoverImageSchema(BaseModelSchema):
     cover_image: str | None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserIDSchema(BaseModelSchema):
@@ -58,7 +58,7 @@ class UserDetailUpdateSchema(BaseModelSchema):
     profession_id: int | None
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "linkedin": "linkedin.com",
                 "github": "github.com",
@@ -74,12 +74,12 @@ class UserProfileUpdateSchema(UserBaseSchema):
     user_details: UserDetailUpdateSchema
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "email": "john@guidio.com",
                 "first_name": "John",
                 "last_name": "Brown",
-                "user_details": UserDetailUpdateSchema.Config.schema_extra['example']
+                "user_details": UserDetailUpdateSchema.Config.json_schema_extra['example']
             }
         }
 
@@ -98,7 +98,7 @@ class UserReadSchema(UserBaseSchema):
     user_details: UserDetailSchema | None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserReadSchemaWithPages(BaseModelSchema):
@@ -110,7 +110,7 @@ class UserPasswordUpdateSchema(UserPasswordSchema):
     current_password: str
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "current_password": "MyPa$$123!",
                 "password": "MyPa$$123!",

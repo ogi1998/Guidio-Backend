@@ -1,24 +1,31 @@
-# To start a local smtp debugging server, run in terminal:
-# python -m smtpd -c DebuggingServer -n localhost:1025
+from pathlib import Path
+from typing import Dict, Any
 
-import smtplib
-from email.message import EmailMessage
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+from pydantic import EmailStr
 
 from core.settings import DEFAULT_FROM_EMAIL
+from src import config
+
+conf = ConnectionConfig(
+    MAIL_USERNAME=config.MAIL_USERNAME,
+    MAIL_FROM=str(config.MAIL_FROM) if config.MAIL_FROM else DEFAULT_FROM_EMAIL,
+    MAIL_PASSWORD=config.MAIL_PASSWORD,
+    MAIL_SERVER=config.MAIL_SERVER,
+    MAIL_PORT=config.MAIL_PORT,
+    MAIL_STARTTLS=config.MAIL_STARTTLS,
+    MAIL_SSL_TLS=config.MAIL_SSL_TLS,
+    TEMPLATE_FOLDER=Path(__file__).parent.parent.parent / 'templates/mail/',
+    SUPPRESS_SEND=1,
+)
 
 
-def send_mail(subject: str, recipients: list[str], text_content: str = '', html_content: str = '',
-              from_email: str = None) -> None:
-    msg = EmailMessage()
-    port = 1025
-    smtp_server = "localhost"
-    msg["Subject"] = subject
-    msg["From"] = from_email if from_email is not None else DEFAULT_FROM_EMAIL
-    msg["To"] = recipients
-
-    msg.set_content(text_content)
-
-    msg.add_alternative(html_content, subtype='html')
-
-    with smtplib.SMTP(smtp_server, port) as server:
-        server.send_message(msg)
+def send_mail(recipients: list[EmailStr], body: Dict[str, Any], template_name: str) -> None:
+    message = MessageSchema(
+        subject="Activation email",
+        recipients=recipients,
+        template_body=body,
+        subtype=MessageType.html,
+    )
+    fm = FastMail(conf)
+    fm.send_message(message, template_name=template_name)

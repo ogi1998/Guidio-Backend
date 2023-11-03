@@ -1,4 +1,5 @@
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,3 +11,14 @@ DB_NAME = os.getenv('DB_NAME')
 ENVIRONMENT = os.getenv('ENVIRONMENT')
 
 SHOW_DOCS_ENVIRONMENT = ('dev',)
+
+# Mail variables
+MAIL_USERNAME = os.getenv('MAIL_USERNAME')
+MAIL_FROM = os.getenv('MAIL_FROM')
+MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
+MAIL_SERVER=os.getenv('MAIL_SERVER')
+MAIL_PORT = os.getenv('MAIL_PORT')
+MAIL_STARTTLS = os.getenv('MAIL_STARTTLS')
+MAIL_SSL_TLS = os.getenv('MAIL_SSL_TLS')
+USE_CREDENTIALS = os.getenv('USE_CREDENTIALS')
+VALIDATE_CERTS = os.getenv('VALIDATE_CERTS')

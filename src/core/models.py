@@ -1,8 +1,7 @@
-from typing import Any
+from typing import Any, Dict
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, Text, ForeignKey
 from sqlalchemy.orm import relationship
-
 from src.database import Base
 from utils.mail.send_mail import send_mail
 
@@ -42,14 +41,9 @@ class User(Base):
     def __str__(self):
         return f'{self.first_name} {self.last_name}'
 
-    def email_user(self, subject: str, from_email: str = None,
-                   text_content: str = '',
-                   html_content: str = ''):
+    def email_user(self, body: Dict[str, Any], template_name: str):
         """Send email to this user."""
-        send_mail(subject=subject, text_content=text_content,
-                  from_email=from_email,
-                  recipients=[self.email],
-                  html_content=html_content)
+        send_mail(recipients=[self.email], body=body, template_name=template_name)
 
 
 class UserDetail(Base):

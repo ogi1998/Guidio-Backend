@@ -10,7 +10,7 @@ class GuideCoverImageSchema(BaseModelSchema):
     cover_image: str | None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class GuideListSingleSchema(BaseModelSchema):
@@ -23,7 +23,7 @@ class GuideListSingleSchema(BaseModelSchema):
     user: UserListReadSchema
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class GuideListReadSchema(BaseModelSchema):
@@ -46,4 +46,4 @@ class GuideReadSchema(GuideCreateUpdateSchema):
     user: UserReadSchema
 
     class Config:
-        orm_mode = True
+        from_attributes = True

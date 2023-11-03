@@ -1,14 +1,14 @@
 import re
+from typing import Dict, Any
 
 from humps.camel import case
-from pydantic import BaseModel as PydanticBaseModel, Field, validator
+from pydantic import BaseModel as PydanticBaseModel, Field, validator, EmailStr
 
 
 class BaseModelSchema(PydanticBaseModel):
-
     class Config:
         alias_generator = case
-        allow_population_by_field_name = True
+        populate_by_name = True
 
 
 class UserPasswordSchema(BaseModelSchema):
@@ -24,3 +24,8 @@ class UserPasswordSchema(BaseModelSchema):
             raise ValueError("Password must contain at least one of these special characters: "
                              "@$!%*?&")
         return password
+
+
+class EmailSchema(BaseModelSchema):
+    email: list[EmailStr]
+    body: Dict[str, Any]
