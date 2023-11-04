@@ -11,6 +11,15 @@ def invalid_credentials_exception():
     return response
 
 
+def user_inactive_exception():
+    """Return HTTPException 400 as user is inactive"""
+    response = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Inactive user",
+    )
+    return response
+
+
 def token_exception():
     """Return HTTPException 401 for invalid token"""
     token_exception_response = HTTPException(

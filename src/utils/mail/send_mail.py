@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Dict, Any
 
@@ -7,25 +8,32 @@ from pydantic import EmailStr
 from core.settings import DEFAULT_FROM_EMAIL
 from src import config
 
+logging.basicConfig(level=logging.DEBUG)
+
 conf = ConnectionConfig(
-    MAIL_USERNAME=config.MAIL_USERNAME,
+    MAIL_USERNAME=config.MAIL_USERNAME if config.MAIL_FROM else '',
     MAIL_FROM=str(config.MAIL_FROM) if config.MAIL_FROM else DEFAULT_FROM_EMAIL,
-    MAIL_PASSWORD=config.MAIL_PASSWORD,
-    MAIL_SERVER=config.MAIL_SERVER,
-    MAIL_PORT=config.MAIL_PORT,
-    MAIL_STARTTLS=config.MAIL_STARTTLS,
-    MAIL_SSL_TLS=config.MAIL_SSL_TLS,
+    MAIL_PASSWORD=config.MAIL_PASSWORD if config.MAIL_PASSWORD else '',
+    MAIL_SERVER=config.MAIL_SERVER if config.MAIL_SERVER else '',
+    MAIL_PORT=config.MAIL_PORT if config.MAIL_PASSWORD else 587,
+    MAIL_STARTTLS=config.MAIL_STARTTLS if config.MAIL_STARTTLS else True,
+    MAIL_SSL_TLS=config.MAIL_SSL_TLS if config.MAIL_SSL_TLS else False,
     TEMPLATE_FOLDER=Path(__file__).parent.parent.parent / 'templates/mail/',
-    SUPPRESS_SEND=1,
+    SUPPRESS_SEND=config.SUPPRESS_SEND if config.MAIL_PASSWORD else 0,
 )
 
 
-def send_mail(recipients: list[EmailStr], body: Dict[str, Any], template_name: str) -> None:
+async def send_mail(subject: str, recipients: list[EmailStr], body: Dict[str, Any],
+                    template_name: str) -> None:
     message = MessageSchema(
-        subject="Activation email",
+        subject=subject,
         recipients=recipients,
         template_body=body,
         subtype=MessageType.html,
     )
-    fm = FastMail(conf)
-    fm.send_message(message, template_name=template_name)
+    try:
+        fm = FastMail(conf)
+        await fm.send_message(message, template_name=template_name)
+        logging.info("Email sent successfully")
+    except Exception as e:
+        logging.error(f"Error sending email: {str(e)}")

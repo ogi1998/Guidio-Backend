@@ -1,20 +1,21 @@
-import os
-import re
 import base64
+import re
 from datetime import datetime, timedelta
 from typing import Match
 
-from fastapi import Depends, Request
-from jose import jwt, JWTError
+from fastapi import Request, HTTPException
+from jose import jwt, ExpiredSignatureError, JWTError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+from starlette import status
 
 from auth import schemas
-from auth.dependencies import has_valid_token
-from auth.exceptions import invalid_credentials_exception, token_exception
+from auth.dependencies import ValidToken
+from auth.exceptions import invalid_credentials_exception, token_exception, user_inactive_exception
 from core.constants import ACTIVATE_ACCOUNT_SUBJECT
 from core.dependencies import DBDependency
 from core.models import User, UserDetail
+from src.config import SECRET_KEY, ALGORITHM, TOKEN_EXP_MINUTES
 
 # CONSTANTS
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -72,13 +73,12 @@ def create_auth_token(user_id: int) -> str:
     token_creation_time = datetime.utcnow()
     user_id_base64 = base64.b64encode(str(user_id).encode('utf-8')).decode('utf-8')
     encode = {"sub": user_id_base64, "iat": token_creation_time}
-    token_expiration_time = float(os.getenv("TOKEN_EXP_MINUTES"))
-    expire = datetime.utcnow() + timedelta(minutes=token_expiration_time)
+    expire = token_creation_time + timedelta(minutes=float(TOKEN_EXP_MINUTES))
     encode.update({"exp": expire})
-    return jwt.encode(encode, os.getenv("SECRET_KEY"), algorithm=os.getenv("ALGORITHM"))
+    return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_user(token: str = Depends(has_valid_token), db=DBDependency):
+def get_current_user(token: str = ValidToken, db=DBDependency):
     """Get current user object if jwt is valid
 
     Args:
@@ -89,17 +89,25 @@ def get_current_user(token: str = Depends(has_valid_token), db=DBDependency):
         User object or invalid credentials exception
     """
     try:
-        payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)
         user_id_base64 = payload.get("sub")
         user_id = int(base64.b64decode(user_id_base64).decode('utf-8'))
         if user_id is None:
             raise invalid_credentials_exception()
         user: User = db.query(User).get(user_id)
         if user is None:
-            return invalid_credentials_exception()
+            raise invalid_credentials_exception()
         return user
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token expired")
     except JWTError:
         token_exception()
+
+
+def get_current_active_user(token: str):
+    current_user = get_current_user(token)
+    if not current_user.is_active:
+        raise user_inactive_exception()
 
 
 # Database interactive functions
@@ -135,9 +143,10 @@ def check_account_existence_by_email(db: Session, email: str) -> bool:
     return db.query(User).filter(User.email == email).first()
 
 
-def create_user(request: Request, db: Session,
-                data: schemas.RegistrationSchemaUser) -> User.user_id | None:
-    """ If user doesn't already exist, create user in database and return created object id.
+async def create_user(request: Request, db: Session,
+                      data: schemas.RegistrationSchemaUser) -> User.user_id | None:
+    """ If user doesn't already exist, create user in database, send verification email and
+    return created object id.
     Also create UserDetail.
     If user already exist, return None.
 
@@ -172,8 +181,11 @@ def create_user(request: Request, db: Session,
     token = create_auth_token(db_user.user_id)
     base_url = str(request.base_url)
     verification_url = f"{base_url}auth/verify_email?token={token}"
-    db_user.email_user(body={"first_name": db_user.first_name, "url": verification_url},
-                       template_name="activation_email.html")
+    expiration_time = datetime.utcnow() + timedelta(minutes=int(TOKEN_EXP_MINUTES))
+    await db_user.email_user(subject=ACTIVATE_ACCOUNT_SUBJECT,
+                             body={"first_name": db_user.first_name, "url": verification_url,
+                                   "expire_at": expiration_time.strftime("%Y-%m-%d %H:%M:%S")},
+                             template_name="activation_email.html")
     return db_user.user_id
 
 
