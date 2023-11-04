@@ -12,7 +12,6 @@ from starlette import status
 from auth import schemas
 from auth.dependencies import ValidToken
 from auth.exceptions import invalid_credentials_exception, token_exception, user_inactive_exception
-from core.constants import ACTIVATE_ACCOUNT_SUBJECT
 from core.dependencies import DBDependency
 from core.models import User, UserDetail
 from src.config import SECRET_KEY, ALGORITHM, TOKEN_EXP_MINUTES
@@ -131,7 +130,7 @@ def authenticate_user(email: str, password: str, db: Session) -> User | bool:
     return user
 
 
-def check_account_existence_by_email(db: Session, email: str) -> bool:
+def get_user_by_email(db: Session, email: str) -> User | None:
     """Check if user exist based on provided email
 
     Args:
@@ -141,6 +140,14 @@ def check_account_existence_by_email(db: Session, email: str) -> bool:
         bool: True if user object exist in the database or None
     """
     return db.query(User).filter(User.email == email).first()
+
+
+async def send_activation_email_to_user(request: Request, user: User):
+    token = create_auth_token(user.user_id)
+    base_url = str(request.base_url)
+    verification_url: str = f"{base_url}auth/verify_email?token={token}"
+    expiration_time: datetime = datetime.utcnow() + timedelta(minutes=int(TOKEN_EXP_MINUTES))
+    await user.send_activation_email(verification_url, expiration_time)
 
 
 async def create_user(request: Request, db: Session,
@@ -162,8 +169,8 @@ async def create_user(request: Request, db: Session,
     Returns:
         object id | None: User object id or None
     """
-    account_exist: bool = check_account_existence_by_email(db, data.email)
-    if account_exist:
+    user: User | None = get_user_by_email(db, data.email)
+    if user is not None:
         return None
     db_user = User()
     db_user.email = data.email
@@ -178,14 +185,7 @@ async def create_user(request: Request, db: Session,
     db.add(user_detail)
     db.commit()
     db.refresh(db_user)
-    token = create_auth_token(db_user.user_id)
-    base_url = str(request.base_url)
-    verification_url = f"{base_url}auth/verify_email?token={token}"
-    expiration_time = datetime.utcnow() + timedelta(minutes=int(TOKEN_EXP_MINUTES))
-    await db_user.email_user(subject=ACTIVATE_ACCOUNT_SUBJECT,
-                             body={"first_name": db_user.first_name, "url": verification_url,
-                                   "expire_at": expiration_time.strftime("%Y-%m-%d %H:%M:%S")},
-                             template_name="activation_email.html")
+    await send_activation_email_to_user(request, db_user)
     return db_user.user_id
 
 

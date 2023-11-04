@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Request, Response, Depends
+from pydantic import EmailStr
 from starlette.responses import JSONResponse
 
 from auth import schemas, service, exceptions
@@ -10,6 +11,17 @@ from core.settings import AUTH_TOKEN
 from users.schemas import UserIDSchema, UserReadSchema
 
 router = APIRouter()
+
+
+@router.post(path="/send_verification_email",
+             status_code=status.HTTP_200_OK)
+async def send_verification_email(request: Request, email: EmailStr, db=DBDependency):
+    user: User = service.get_user_by_email(db, email)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="User with specified email doesn't exists")
+    await service.send_activation_email_to_user(request, user)
+    return JSONResponse(content={"detail": "Activation email sent"})
 
 
 @router.get(path="/verify_email",
