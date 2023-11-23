@@ -10,10 +10,11 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from auth import schemas
-from auth.dependencies import ValidToken
+from auth.dependencies import is_valid_token
 from auth.exceptions import invalid_credentials_exception, token_exception, user_inactive_exception
 from core.dependencies import DBDependency
 from core.models import User, UserDetail
+from core.settings import AUTH_TOKEN
 from src.config import SECRET_KEY, ALGORITHM, TOKEN_EXP_MINUTES
 
 # CONSTANTS
@@ -77,18 +78,18 @@ def create_auth_token(user_id: int) -> str:
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_user(token: str = ValidToken, db=DBDependency):
+def get_current_user(token: str, db: Session):
     """Get current user object if jwt is valid
 
     Args:
-        token (str): jwt token
+        token (str): JWT encoded token
         db (Session): database session
 
     Returns:
-        User object or invalid credentials exception
+        User object or exception
     """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=ALGORITHM)
+        payload = is_valid_token(token)
         user_id_base64 = payload.get("sub")
         user_id = int(base64.b64decode(user_id_base64).decode('utf-8'))
         if user_id is None:
@@ -103,10 +104,11 @@ def get_current_user(token: str = ValidToken, db=DBDependency):
         token_exception()
 
 
-def get_current_active_user(token: str):
-    current_user = get_current_user(token)
+def get_current_active_user(request: Request, db=DBDependency):
+    current_user = get_current_user(request.cookies.get(AUTH_TOKEN), db)
     if not current_user.is_active:
         raise user_inactive_exception()
+    return current_user
 
 
 # Database interactive functions
