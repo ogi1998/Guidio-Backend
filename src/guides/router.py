@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status, HTTPException, Query, UploadFile
 
 from auth.dependencies import ValidToken
 from auth.exceptions import invalid_credentials_exception
-from auth.service import get_current_user
+from auth.service import get_current_active_user
 from core.dependencies import DBDependency
 from core.exceptions import non_existent_page_exception
 from core.models import User
@@ -36,13 +36,12 @@ def get_list_of_guides(db=DBDependency,
 
 
 @router.post(path="",
-             dependencies=[ValidToken],
              description="Create guide",
              status_code=status.HTTP_201_CREATED,
              response_model=schemas.GuideReadSchema)
 def create_guide(data: schemas.GuideCreateUpdateSchema,
                  db=DBDependency,
-                 user: User = Depends(get_current_user)):
+                 user: User = Depends(get_current_active_user)):
     if not user:
         raise invalid_credentials_exception()
     if not user.user_details.is_instructor:
@@ -52,12 +51,11 @@ def create_guide(data: schemas.GuideCreateUpdateSchema,
 
 
 @router.get(path="/cover_image",
-            dependencies=[ValidToken],
             description="Get guide cover image",
             response_model=schemas.GuideCoverImageSchema,
             status_code=status.HTTP_200_OK)
 def get_cover_image(guide_id: int,
-                    user: User = Depends(get_current_user),
+                    user: User = Depends(get_current_active_user),
                     db=DBDependency):
     guide = service.get_guide_by_id(db, guide_id, user)
     if not guide:
@@ -70,14 +68,13 @@ def get_cover_image(guide_id: int,
 
 
 @router.post(path="/cover_image",
-             dependencies=[ValidToken],
              description="Create guide cover image",
              response_model=schemas.GuideCoverImageSchema,
              status_code=status.HTTP_201_CREATED)
 def create_cover_image(guide_id: int,
                        file: UploadFile,
                        db=DBDependency,
-                       user: User = Depends(get_current_user)):
+                       user: User = Depends(get_current_active_user)):
     guide = service.get_guide_by_id(db, guide_id, user)
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
@@ -88,14 +85,13 @@ def create_cover_image(guide_id: int,
 
 
 @router.put(path="/cover_image",
-            dependencies=[ValidToken],
             description="Update guide cover image",
             response_model=schemas.GuideCoverImageSchema,
             status_code=status.HTTP_200_OK)
 def update_cover_image(guide_id: int,
                        file: UploadFile,
                        db=DBDependency,
-                       user: User = Depends(get_current_user)):
+                       user: User = Depends(get_current_active_user)):
     guide = service.get_guide_by_id(db, guide_id, user)
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
@@ -106,12 +102,11 @@ def update_cover_image(guide_id: int,
 
 
 @router.delete(path="/cover_image",
-               dependencies=[ValidToken],
                description="Delete user cover image",
                status_code=status.HTTP_204_NO_CONTENT)
 def delete_cover_image(guide_id: int,
                        db=DBDependency,
-                       user: User = Depends(get_current_user)):
+                       user: User = Depends(get_current_active_user)):
     guide = service.get_guide_by_id(db, guide_id, user)
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
@@ -126,7 +121,6 @@ def delete_cover_image(guide_id: int,
 
 
 @router.get(path="/search",
-            dependencies=[ValidToken],
             description="Search guides by title",
             status_code=status.HTTP_200_OK,
             response_model=schemas.GuideListReadSchema)
@@ -143,7 +137,6 @@ def get_guides_by_title(title: str,
 
 
 @router.get(path="/{user_id}",
-            dependencies=[ValidToken],
             description="Get guides by user ID",
             status_code=status.HTTP_200_OK,
             response_model=schemas.GuideListReadSchema)
@@ -151,7 +144,7 @@ def get_guides_by_user_id(user_id: int,
                           page: int = Query(default=1, ge=1, description="Page to request"),
                           page_size: int = Query(default=50, ge=1, le=100, description="Page size"),
                           db=DBDependency,
-                          user: User = Depends(get_current_user)):
+                          user: User = Depends(get_current_active_user)):
     guides = service.get_guides_by_user_id(db=db,
                                            user_id=user_id,
                                            page=page - 1,
@@ -165,13 +158,12 @@ def get_guides_by_user_id(user_id: int,
 
 
 @router.get("/guide/{guide_id}",
-            dependencies=[ValidToken],
             description="Get single guide by ID",
             status_code=status.HTTP_200_OK,
             response_model=schemas.GuideReadSchema)
 def get_guide_by_id(guide_id: int,
                     db=DBDependency,
-                    user: User = Depends(get_current_user)):
+                    user: User = Depends(get_current_active_user)):
     guide = service.get_guide_by_id(db, guide_id, user)
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
@@ -179,13 +171,12 @@ def get_guide_by_id(guide_id: int,
 
 
 @router.put(path="/{guide_id}",
-            dependencies=[ValidToken],
             description="Update guide",
             status_code=status.HTTP_201_CREATED,
             response_model=schemas.GuideReadSchema)
 def update_guide(guide_id: int, data: schemas.GuideCreateUpdateSchema,
                  db=DBDependency,
-                 user: User = Depends(get_current_user)):
+                 user: User = Depends(get_current_active_user)):
     guide = service.get_guide_by_id(db, guide_id, user)
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
@@ -195,12 +186,11 @@ def update_guide(guide_id: int, data: schemas.GuideCreateUpdateSchema,
 
 
 @router.delete(path="/{guide_id}",
-               dependencies=[ValidToken],
                description="Delete guide",
                status_code=status.HTTP_204_NO_CONTENT)
 def delete_guide(guide_id: int,
                  db=DBDependency,
-                 user: User = Depends(get_current_user)):
+                 user: User = Depends(get_current_active_user)):
     guide = service.get_guide_by_id(db, guide_id, user)
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")

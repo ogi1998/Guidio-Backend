@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status, HTTPException, Response, UploadF
 
 from auth.dependencies import ValidToken
 from auth.exceptions import invalid_credentials_exception
-from auth.service import get_current_user, verify_password
+from auth.service import get_current_active_user, verify_password
 from core.dependencies import DBDependency
 from core.exceptions import non_existent_page_exception
 from core.models import User
@@ -13,7 +13,6 @@ router = APIRouter()
 
 
 @router.get(path="/professions",
-            dependencies=[ValidToken],
             description="Get professions based on search by name",
             response_model=list[schemas.ProfessionReadSchema])
 def get_profession_by_name(name: str,
@@ -23,7 +22,6 @@ def get_profession_by_name(name: str,
 
 
 @router.get(path="/instructors",
-            dependencies=[ValidToken],
             description="Get list of users who are instructors",
             response_model=schemas.UserReadSchemaWithPages)
 def get_instructors(page: int = Query(default=1, ge=1, description="Page to request"),
@@ -36,7 +34,6 @@ def get_instructors(page: int = Query(default=1, ge=1, description="Page to requ
 
 
 @router.get(path="/instructors/search",
-            dependencies=[ValidToken],
             status_code=status.HTTP_200_OK,
             description="Retrieve instructors via search",
             response_model=schemas.UserReadSchemaWithPages)
@@ -54,11 +51,10 @@ def search_instructors(search: str,
 
 
 @router.get(path="/avatar",
-            dependencies=[ValidToken],
             description="Get user avatar",
             response_model=schemas.UserAvatarSchema,
             status_code=status.HTTP_200_OK)
-def get_avatar(user: User = Depends(get_current_user)):
+def get_avatar(user: User = Depends(get_current_active_user)):
     avatar = service.get_avatar(user)
     if avatar is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -67,30 +63,27 @@ def get_avatar(user: User = Depends(get_current_user)):
 
 
 @router.post(path="/avatar",
-             dependencies=[ValidToken],
              description="Create user avatar",
              response_model=schemas.UserReadSchema,
              status_code=status.HTTP_201_CREATED)
-def create_avatar(file: UploadFile, db=DBDependency, user: User = Depends(get_current_user)):
+def create_avatar(file: UploadFile, db=DBDependency, user: User = Depends(get_current_active_user)):
     saved = service.save_avatar(file, db, user)
     return saved
 
 
 @router.put(path="/avatar",
-            dependencies=[ValidToken],
             description="Update user avatar",
             response_model=schemas.UserReadSchema,
             status_code=status.HTTP_200_OK)
-def update_avatar(file: UploadFile, db=DBDependency, user: User = Depends(get_current_user)):
+def update_avatar(file: UploadFile, db=DBDependency, user: User = Depends(get_current_active_user)):
     updated = service.save_avatar(file, db, user)
     return updated
 
 
 @router.delete(path="/avatar",
-               dependencies=[ValidToken],
                description="Delete user avatar",
                status_code=status.HTTP_204_NO_CONTENT)
-def delete_avatar(db=DBDependency, user: User = Depends(get_current_user)):
+def delete_avatar(db=DBDependency, user: User = Depends(get_current_active_user)):
     avatar = user.user_details.avatar
     if avatar is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -100,11 +93,10 @@ def delete_avatar(db=DBDependency, user: User = Depends(get_current_user)):
 
 
 @router.get(path="/cover_image",
-            dependencies=[ValidToken],
             description="Get user cover image",
             response_model=schemas.UserCoverImageSchema,
             status_code=status.HTTP_200_OK)
-def get_cover_image(user: User = Depends(get_current_user)):
+def get_cover_image(user: User = Depends(get_current_active_user)):
     image = service.get_cover_image(user)
     if image is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -113,30 +105,27 @@ def get_cover_image(user: User = Depends(get_current_user)):
 
 
 @router.post(path="/cover_image",
-             dependencies=[ValidToken],
              description="Create user cover image",
              response_model=schemas.UserReadSchema,
              status_code=status.HTTP_201_CREATED)
-def create_cover_image(file: UploadFile, db=DBDependency, user: User = Depends(get_current_user)):
+def create_cover_image(file: UploadFile, db=DBDependency, user: User = Depends(get_current_active_user)):
     saved = service.save_cover_image(file, db, user)
     return saved
 
 
 @router.put(path="/cover_image",
-            dependencies=[ValidToken],
             description="Update user cover image",
             response_model=schemas.UserReadSchema,
             status_code=status.HTTP_200_OK)
-def update_cover_image(file: UploadFile, db=DBDependency, user: User = Depends(get_current_user)):
+def update_cover_image(file: UploadFile, db=DBDependency, user: User = Depends(get_current_active_user)):
     updated = service.save_cover_image(file, db, user)
     return updated
 
 
 @router.delete(path="/cover_image",
-               dependencies=[ValidToken],
                description="Delete user cover image",
                status_code=status.HTTP_204_NO_CONTENT)
-def delete_cover_image(db=DBDependency, user: User = Depends(get_current_user)):
+def delete_cover_image(db=DBDependency, user: User = Depends(get_current_active_user)):
     image = user.user_details.cover_image
     if image is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -156,11 +145,10 @@ def get_user_profile_by_id(user_id: int, db=DBDependency):
 
 
 @router.put(path='/{user_id}',
-            dependencies=[ValidToken],
             description="Update user profile",
             response_model=schemas.UserReadSchema)
 def update_user_profile(user_id: int, data: schemas.UserProfileUpdateSchema, db=DBDependency,
-                        user: User = Depends(get_current_user)):
+                        user: User = Depends(get_current_active_user)):
     if user_id != user.user_id:
         raise invalid_credentials_exception()
     if data.user_details.profession_id:
@@ -173,11 +161,10 @@ def update_user_profile(user_id: int, data: schemas.UserProfileUpdateSchema, db=
 
 
 @router.delete(path='/{user_id}',
-               dependencies=[ValidToken],
                description="Delete user profile",
                status_code=status.HTTP_204_NO_CONTENT)
 def delete_user_profile(user_id: int, response: Response, db=DBDependency,
-                        user: User = Depends(get_current_user)):
+                        user: User = Depends(get_current_active_user)):
     if not user or user_id != user.user_id:
         raise invalid_credentials_exception()
     response.delete_cookie(AUTH_TOKEN)
@@ -185,14 +172,13 @@ def delete_user_profile(user_id: int, response: Response, db=DBDependency,
 
 
 @router.put(path="/{user_id}/update_password",
-            dependencies=[ValidToken],
             description="Update user password",
             status_code=status.HTTP_200_OK,
             response_model=schemas.UserReadSchema)
 def update_user_password(user_id: int,
                          data: schemas.UserPasswordUpdateSchema,
                          db=DBDependency,
-                         user: User = Depends(get_current_user)):
+                         user: User = Depends(get_current_active_user)):
     if user_id != user.user_id:
         raise invalid_credentials_exception()
     if not verify_password(data.current_password, user.password):
