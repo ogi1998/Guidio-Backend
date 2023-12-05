@@ -15,7 +15,7 @@ router = APIRouter()
 @router.post(path="/send_verification_email",
              status_code=status.HTTP_200_OK)
 async def send_verification_email(request: Request, email: EmailStr, db=DBDependency):
-    user: User = service.get_user_by_email(db, email)
+    user: User = await service.get_user_by_email(db, email)
     if user is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="User with specified email doesn't exists")
@@ -25,11 +25,11 @@ async def send_verification_email(request: Request, email: EmailStr, db=DBDepend
 
 @router.get(path="/verify_email",
             status_code=status.HTTP_200_OK)
-def verify_email(token: str, db=DBDependency):
-    user = get_current_user(token, db)
+async def verify_email(token: str, db=DBDependency):
+    user = await get_current_user(token, db)
     if user is None or user.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification failed")
-    service.activate_user(user, db)
+    await service.activate_user(user, db)
     return JSONResponse(content={"detail": "Activation successful"}, status_code=status.HTTP_200_OK)
 
 
@@ -47,19 +47,20 @@ async def register_user(request: Request, data: schemas.RegistrationSchemaUser,
 
 @router.post(path="/login",
              response_model=UserReadSchema)
-def login_user(data: schemas.LoginSchema, response: Response, db=DBDependency) -> UserReadSchema:
-    user = service.authenticate_user(data.email, data.password, db)
+async def login_user(data: schemas.LoginSchema, response: Response,
+                     db=DBDependency) -> UserReadSchema:
+    user = await service.authenticate_user(data.email, data.password, db)
     if not user:
         raise exceptions.invalid_credentials_exception()
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email not verified")
-    token = service.create_auth_token(user.user_id)
+    token = await service.create_auth_token(user.user_id)
     response.set_cookie(key=AUTH_TOKEN, value=token)
     return user
 
 
 @router.post(path='/logout')
-def logout_user():
+async def logout_user():
     response = JSONResponse(content={"message": "User logged out successfully"})
     response.delete_cookie(AUTH_TOKEN)
     response.status_code = status.HTTP_200_OK
@@ -69,5 +70,5 @@ def logout_user():
 @router.get(path="/token",
             description="Get user object from token",
             response_model=UserReadSchema)
-def get_user_from_token(user: User = Depends(get_current_active_user)) -> UserReadSchema:
+async def get_user_from_token(user: User = Depends(get_current_active_user)) -> UserReadSchema:
     return user

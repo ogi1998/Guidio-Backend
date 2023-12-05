@@ -34,7 +34,7 @@ def get_password_hash(password: str) -> str:
     return bcrypt_context.hash(password)
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
+async def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Return True if plain password matches hashed password from the database after verification
 
     Args:
@@ -61,7 +61,7 @@ def find_detail_in_error(substring: str, message: str) -> Match[str] | None:
     return re.search(str(substring), str(message))
 
 
-def create_auth_token(user_id: int) -> str:
+async def create_auth_token(user_id: int) -> str:
     """Create authentication jwt token for a specific user
 
     Args:
@@ -78,7 +78,7 @@ def create_auth_token(user_id: int) -> str:
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_user(token: str, db: Session):
+async def get_current_user(token: str, db: Session):
     """Get current user object if jwt is valid
 
     Args:
@@ -89,7 +89,7 @@ def get_current_user(token: str, db: Session):
         User object or exception
     """
     try:
-        payload = is_valid_token(token)
+        payload = await is_valid_token(token)
         user_id_base64 = payload.get("sub")
         user_id = int(base64.b64decode(user_id_base64).decode('utf-8'))
         if user_id is None:
@@ -104,15 +104,15 @@ def get_current_user(token: str, db: Session):
         token_exception()
 
 
-def get_current_active_user(request: Request, db=DBDependency):
-    current_user = get_current_user(request.cookies.get(AUTH_TOKEN), db)
+async def get_current_active_user(request: Request, db=DBDependency):
+    current_user = await get_current_user(request.cookies.get(AUTH_TOKEN), db)
     if not current_user.is_active:
         raise user_inactive_exception()
     return current_user
 
 
 # Database interactive functions
-def authenticate_user(email: str, password: str, db: Session) -> User | bool:
+async def authenticate_user(email: str, password: str, db: Session) -> User | bool:
     """Search for user in database and return user object. If user doesn't exist return False
 
     Args:
@@ -127,12 +127,12 @@ def authenticate_user(email: str, password: str, db: Session) -> User | bool:
     user = db.query(User).filter(User.email == email).first()
     if not user:
         return False
-    if not verify_password(password, user.password):
+    if not await verify_password(password, user.password):
         return False
     return user
 
 
-def get_user_by_email(db: Session, email: str) -> User | None:
+async def get_user_by_email(db: Session, email: str) -> User | None:
     """Check if user exist based on provided email
 
     Args:
@@ -171,7 +171,7 @@ async def create_user(request: Request, db: Session,
     Returns:
         object id | None: User object id or None
     """
-    user: User | None = get_user_by_email(db, data.email)
+    user: User | None = await get_user_by_email(db, data.email)
     if user is not None:
         return None
     db_user = User()
@@ -191,7 +191,7 @@ async def create_user(request: Request, db: Session,
     return db_user.user_id
 
 
-def activate_user(user: User, db: Session) -> None:
+async def activate_user(user: User, db: Session) -> None:
     user.is_active = True
     db.commit()
     return

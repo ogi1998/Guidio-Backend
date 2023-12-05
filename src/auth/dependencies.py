@@ -4,7 +4,7 @@ from fastapi import HTTPException, status, Depends
 from jose import jwt, JOSEError
 
 
-def is_valid_token(token: str) -> dict:
+async def is_valid_token(token: str) -> dict:
     if not isinstance(token, str):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     try:

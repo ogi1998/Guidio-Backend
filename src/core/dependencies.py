@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from database import SessionLocal
 
 
-def get_db():
+async def get_db():
     db = SessionLocal()
     try:
         yield db

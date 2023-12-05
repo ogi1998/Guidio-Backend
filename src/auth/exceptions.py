@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 
 
+# TODO: Make functions async
 def invalid_credentials_exception():
     """Return HTTPException 401 for invalid credentials"""
     response = HTTPException(
