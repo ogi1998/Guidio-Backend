@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 
 
 # TODO: Make functions async
-def invalid_credentials_exception():
+async def invalid_credentials_exception():
     """Return HTTPException 401 for invalid credentials"""
     response = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -12,7 +12,7 @@ def invalid_credentials_exception():
     return response
 
 
-def user_inactive_exception():
+async def user_inactive_exception():
     """Return HTTPException 400 as user is inactive"""
     response = HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
@@ -21,7 +21,7 @@ def user_inactive_exception():
     return response
 
 
-def token_exception():
+async def token_exception():
     """Return HTTPException 401 for invalid token"""
     token_exception_response = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

@@ -93,21 +93,21 @@ async def get_current_user(token: str, db: Session):
         user_id_base64 = payload.get("sub")
         user_id = int(base64.b64decode(user_id_base64).decode('utf-8'))
         if user_id is None:
-            raise invalid_credentials_exception()
+            raise await invalid_credentials_exception()
         user: User = db.query(User).get(user_id)
         if user is None:
-            raise invalid_credentials_exception()
+            raise await invalid_credentials_exception()
         return user
     except ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token expired")
     except JWTError:
-        token_exception()
+        raise await token_exception()
 
 
 async def get_current_active_user(request: Request, db=DBDependency):
     current_user = await get_current_user(request.cookies.get(AUTH_TOKEN), db)
     if not current_user.is_active:
-        raise user_inactive_exception()
+        raise await user_inactive_exception()
     return current_user
 
 

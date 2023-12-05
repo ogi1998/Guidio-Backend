@@ -51,7 +51,7 @@ async def login_user(data: schemas.LoginSchema, response: Response,
                      db=DBDependency) -> UserReadSchema:
     user = await service.authenticate_user(data.email, data.password, db)
     if not user:
-        raise exceptions.invalid_credentials_exception()
+        raise await exceptions.invalid_credentials_exception()
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email not verified")
     token = await service.create_auth_token(user.user_id)

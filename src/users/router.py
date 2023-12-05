@@ -163,10 +163,10 @@ def update_user_profile(user_id: int, data: schemas.UserProfileUpdateSchema, db=
 @router.delete(path='/{user_id}',
                description="Delete user profile",
                status_code=status.HTTP_204_NO_CONTENT)
-def delete_user_profile(user_id: int, response: Response, db=DBDependency,
+async def delete_user_profile(user_id: int, response: Response, db=DBDependency,
                         user: User = Depends(get_current_active_user)):
     if not user or user_id != user.user_id:
-        raise invalid_credentials_exception()
+        raise await invalid_credentials_exception()
     response.delete_cookie(AUTH_TOKEN)
     return service.delete_user_profile(db, user_id)
 
@@ -175,12 +175,12 @@ def delete_user_profile(user_id: int, response: Response, db=DBDependency,
             description="Update user password",
             status_code=status.HTTP_200_OK,
             response_model=schemas.UserReadSchema)
-def update_user_password(user_id: int,
+async def update_user_password(user_id: int,
                          data: schemas.UserPasswordUpdateSchema,
                          db=DBDependency,
                          user: User = Depends(get_current_active_user)):
     if user_id != user.user_id:
-        raise invalid_credentials_exception()
+        raise await invalid_credentials_exception()
     if not verify_password(data.current_password, user.password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid password")
