@@ -22,7 +22,7 @@ bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 # Intermediate function helpers
-def get_password_hash(password: str) -> str:
+async def get_password_hash(password: str) -> str:
     """Return password hash from plain password
 
     Args:
