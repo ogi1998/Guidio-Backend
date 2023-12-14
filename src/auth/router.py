@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException, status, Request, Response, Depends
 from pydantic import EmailStr
 from starlette.responses import JSONResponse
 
-from auth import schemas, service, exceptions
-from auth.service import get_current_user, get_current_active_user
+from auth import schemas, service, exceptions, manager
+from auth.service import get_current_user, get_current_active_user, UserAlreadyExists
 from core.dependencies import DBDependency
 from core.models import User
 from core.settings import AUTH_TOKEN
@@ -36,12 +36,12 @@ async def verify_email(token: str, db=DBDependency):
 @router.post(path="/register",
              status_code=status.HTTP_201_CREATED,
              response_model=UserIDSchema)
-async def register_user(request: Request, data: schemas.RegistrationSchemaUser,
-                        db=DBDependency) -> UserIDSchema:
-    user_id: int = await service.create_user(request, db, data)
-    if user_id is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="User with specified email already exists")
+async def register_user(request: Request, data: schemas.RegistrationSchemaUser) -> UserIDSchema:
+    auth_manager = manager.AuthenticationManager()
+    try:
+        user_id: int = await auth_manager.register_user(request, data)
+    except UserAlreadyExists as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
     return UserIDSchema(user_id=user_id)
 
 

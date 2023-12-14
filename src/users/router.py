@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, status, HTTPException, Response, UploadFile, Query
 
 from auth.exceptions import invalid_credentials_exception
-from auth.service import get_current_active_user, verify_password
+from auth.service import get_current_active_user
+# from auth.service import verify_password # TODO: verify_pass.. is inside class
 from core.dependencies import DBDependency
 from core.exceptions import non_existent_page_exception
 from core.models import User

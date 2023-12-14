@@ -1,7 +1,12 @@
 from fastapi import HTTPException, status
 
 
-# TODO: Make functions async
+class UserAlreadyExists(Exception):
+    def __init__(self, message="User already exists"):
+        self.message = message
+        super().__init__(self.message)
+
+
 async def invalid_credentials_exception():
     """Return HTTPException 401 for invalid credentials"""
     response = HTTPException(

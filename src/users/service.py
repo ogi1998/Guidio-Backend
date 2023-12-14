@@ -7,7 +7,7 @@ from fastapi import UploadFile
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from auth.service import get_password_hash
+# from auth.service import get_password_hash # TODO: fix this because it is inside a class
 from core.constants import MEDIA_ROOT
 from core.models import User, UserDetail, Profession, Guide
 from core.service import count_number_of_pages

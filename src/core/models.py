@@ -49,14 +49,6 @@ class User(Base):
         await send_mail(subject=subject, recipients=[self.email], body=body,
                         template_name=template_name)
 
-    async def send_activation_email(self, verification_url: str, expiration_time: datetime):
-        """Send account activation email to this user."""
-        await send_mail(subject=ACTIVATE_ACCOUNT_SUBJECT,
-                        recipients=[self.email],
-                        body={"first_name": self.first_name, "url": verification_url,
-                              "expire_at": expiration_time.strftime("%Y-%m-%d %H:%M:%S")},
-                        template_name="activation_email.html")
-
 
 class UserDetail(Base):
     __tablename__ = "user_detail"

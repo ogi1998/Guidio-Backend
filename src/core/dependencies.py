@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 from database import SessionLocal
 
 
-async def get_db():
+def get_db():
     db = SessionLocal()
     try:
-        yield db
+        return db
     finally:
         db.close()
 
