@@ -7,6 +7,34 @@ class UserAlreadyExists(Exception):
         super().__init__(self.message)
 
 
+class UserDoesNotExist(Exception):
+    def __init__(self, message="User does not exist"):
+        self.status_code = status.HTTP_404_NOT_FOUND
+        self.message = message
+        super().__init__(self.message)
+
+
+class InvalidCredentials(Exception):
+    def __init__(self, message="Invalid credentials"):
+        self.status_code = status.HTTP_401_UNAUTHORIZED
+        self.message = message
+        super().__init__(self.message)
+
+
+class EmailNotVerified(Exception):
+    def __init__(self, message="Email not verified"):
+        self.status_code = status.HTTP_400_BAD_REQUEST
+        self.message = message
+        super().__init__(self.message)
+
+
+class PasswordsDoNotMatch(Exception):
+    def __init__(self, message="Email not verified"):
+        self.status_code = status.HTTP_400_BAD_REQUEST
+        self.message = message
+        super().__init__(self.message)
+
+
 async def invalid_credentials_exception():
     """Return HTTPException 401 for invalid credentials"""
     response = HTTPException(

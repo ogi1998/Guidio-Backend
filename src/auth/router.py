@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException, status, Request, Response, Depends
 from pydantic import EmailStr
 from starlette.responses import JSONResponse
 
-from auth import schemas, service, exceptions, manager
+from auth import schemas, service, manager
+from auth.exceptions import InvalidCredentials, EmailNotVerified
 from auth.service import get_current_user, get_current_active_user, UserAlreadyExists
 from core.dependencies import DBDependency
 from core.models import User
@@ -10,6 +11,7 @@ from core.settings import AUTH_TOKEN
 from users.schemas import UserIDSchema, UserReadSchema
 
 router = APIRouter()
+auth_manager = manager.AuthenticationManager()
 
 
 @router.post(path="/send_verification_email",
@@ -37,7 +39,6 @@ async def verify_email(token: str, db=DBDependency):
              status_code=status.HTTP_201_CREATED,
              response_model=UserIDSchema)
 async def register_user(request: Request, data: schemas.RegistrationSchemaUser) -> UserIDSchema:
-    auth_manager = manager.AuthenticationManager()
     try:
         user_id: int = await auth_manager.register_user(request, data)
     except UserAlreadyExists as e:
@@ -47,14 +48,13 @@ async def register_user(request: Request, data: schemas.RegistrationSchemaUser) 
 
 @router.post(path="/login",
              response_model=UserReadSchema)
-async def login_user(data: schemas.LoginSchema, response: Response,
-                     db=DBDependency) -> UserReadSchema:
-    user = await service.authenticate_user(data.email, data.password, db)
-    if not user:
-        raise await exceptions.invalid_credentials_exception()
-    if not user.is_active:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email not verified")
-    token = await service.create_auth_token(user.user_id)
+async def login_user(data: schemas.LoginSchema, response: Response) -> UserReadSchema:
+    try:
+        user, token = await auth_manager.login_user(data.email, data.password)
+    except InvalidCredentials as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+    except EmailNotVerified as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
     response.set_cookie(key=AUTH_TOKEN, value=token)
     return user
 

@@ -11,8 +11,7 @@ from starlette import status
 
 from auth import schemas
 from auth.dependencies import is_valid_token
-from auth.exceptions import invalid_credentials_exception, token_exception, user_inactive_exception, \
-    UserAlreadyExists
+from auth.exceptions import invalid_credentials_exception, token_exception, user_inactive_exception
 from core.constants import ACTIVATE_ACCOUNT_SUBJECT
 from core.dependencies import DBDependency, get_db
 from core.models import User, UserDetail
@@ -51,10 +50,7 @@ class AuthenticationService:
 
     # TODO: Move this function to users
     async def get_user_by_email(self, email: str) -> User | None:
-        user: User | None = self.__db.query(User).filter(User.email == email).first()
-        if user:
-            raise UserAlreadyExists()
-        return user
+        return self.__db.query(User).filter(User.email == email).first()
 
     # TODO: Move this function to users
     async def send_activation_email_to_user(self, request: Request, user: User):
@@ -80,15 +76,6 @@ class AuthenticationService:
         return self.__bcrypt_context.hash(password)
 
     async def verify_password(self, plain_password: str, hashed_password: str) -> bool:
-        """Return True if plain password matches hashed password from the database after verification
-
-        Args:
-            plain_password (str): plain password from user input
-            hashed_password (str): current user's password in database
-
-        Returns:
-            boolean value as result of verification
-        """
         return self.__bcrypt_context.verify(plain_password, hashed_password)
 
     @staticmethod
@@ -156,28 +143,6 @@ async def get_current_active_user(request: Request, db=DBDependency):
     if not current_user.is_active:
         raise await user_inactive_exception()
     return current_user
-
-
-# Database interactive functions
-async def authenticate_user(email: str, password: str, db: Session) -> User | bool:
-    """Search for user in database and return user object. If user doesn't exist return False
-
-    Args:
-        email (str): user's provided email
-        password (str): plain password
-        db (Session): database Session
-
-    Returns:
-        object: User's object if user exist
-        bool: False if user doesn't exist in database
-    """
-    user = db.query(User).filter(
-        User.email == email).first()  # TODO: Use get_user_by_email function
-    if not user:
-        return False
-    if not await verify_password(password, user.password):
-        return False
-    return user
 
 
 # TODO: Move this function to users
