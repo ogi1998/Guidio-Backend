@@ -3,8 +3,8 @@ from pydantic import EmailStr
 from starlette.responses import JSONResponse
 
 from auth import schemas, service, manager
-from auth.exceptions import InvalidCredentials, EmailNotVerified
-from auth.service import get_current_user, get_current_active_user, UserAlreadyExists
+from auth.exceptions import InvalidCredentials, EmailNotVerified, UserAlreadyExists
+from auth.service import get_current_user, get_current_active_user
 from core.dependencies import DBDependency
 from core.models import User
 from core.settings import AUTH_TOKEN
@@ -67,7 +67,7 @@ async def logout_user():
     return response
 
 
-@router.get(path="/token",
+@router.get(path="/user_info",
             description="Get user object from token",
             response_model=UserReadSchema)
 async def get_user_from_token(user: User = Depends(get_current_active_user)) -> UserReadSchema:

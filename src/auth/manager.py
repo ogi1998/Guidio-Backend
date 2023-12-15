@@ -1,8 +1,7 @@
 from fastapi import Request
 
 from auth import schemas, service
-from auth.exceptions import InvalidCredentials, EmailNotVerified
-from auth.service import UserAlreadyExists
+from auth.exceptions import InvalidCredentials, EmailNotVerified, UserAlreadyExists
 from core.models import User
 
 
