@@ -3,7 +3,8 @@ from pydantic import EmailStr
 from starlette.responses import JSONResponse
 
 from auth import schemas, service, manager
-from auth.exceptions import InvalidCredentials, EmailNotVerified, UserAlreadyExists
+from auth.exceptions import InvalidCredentials, AccountNotVerified, UserAlreadyExists, \
+    UserDoesNotExist, AccountAlreadyVerified
 from auth.service import get_current_user, get_current_active_user
 from core.dependencies import DBDependency
 from core.models import User
@@ -16,12 +17,17 @@ auth_manager = manager.AuthenticationManager()
 
 @router.post(path="/send_verification_email",
              status_code=status.HTTP_200_OK)
-async def send_verification_email(request: Request, email: EmailStr, db=DBDependency):
-    user: User = await service.get_user_by_email(db, email)
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="User with specified email doesn't exists")
-    await service.send_activation_email_to_user(request, user)
+async def send_verification_email(request: Request, email: EmailStr):
+    try:
+        await auth_manager.send_verification_email(request, email)
+    except UserDoesNotExist as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+    except AccountAlreadyVerified as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error sending email. Please try again later.")
     return JSONResponse(content={"detail": "Activation email sent"})
 
 
@@ -53,7 +59,7 @@ async def login_user(data: schemas.LoginSchema, response: Response) -> UserReadS
         user, token = await auth_manager.login_user(data.email, data.password)
     except InvalidCredentials as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
-    except EmailNotVerified as e:
+    except AccountNotVerified as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
     response.set_cookie(key=AUTH_TOKEN, value=token)
     return user

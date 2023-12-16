@@ -58,11 +58,14 @@ class AuthenticationService:
         base_url = str(request.base_url)
         verification_url: str = f"{base_url}auth/verify_email?token={token}"
         expiration_time: datetime = datetime.utcnow() + timedelta(minutes=int(TOKEN_EXP_MINUTES))
-        await send_mail(subject=ACTIVATE_ACCOUNT_SUBJECT,
-                        recipients=[user.email],
-                        body={"first_name": user.first_name, "url": verification_url,
-                              "expire_at": expiration_time.strftime("%Y-%m-%d %H:%M:%S")},
-                        template_name="activation_email.html")
+        try:
+            await send_mail(subject=ACTIVATE_ACCOUNT_SUBJECT,
+                            recipients=[user.email],
+                            body={"first_name": user.first_name, "url": verification_url,
+                                  "expire_at": expiration_time.strftime("%Y-%m-%d %H:%M:%S")},
+                            template_name="activation_email.html")
+        except Exception as e:
+            raise e
 
     async def get_password_hash(self, password: str) -> str:
         """Return password hash from plain password

@@ -37,15 +37,6 @@ async def send_mail(subject: str, recipients: list[EmailStr], body: Dict[str, An
         fm = FastMail(conf)
         await fm.send_message(message, template_name=template_name)
         logging.info("Email sent successfully")
-    except SMTPException as smtp_exception:
-        logging.error(f"SMTPException: {str(smtp_exception)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error sending email. Please try again later."
-        )
     except Exception as e:
         logging.error(f"Error sending email: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error sending email. Please try again later."
-        )
+        raise e

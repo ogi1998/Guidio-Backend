@@ -21,8 +21,15 @@ class InvalidCredentials(Exception):
         super().__init__(self.message)
 
 
-class EmailNotVerified(Exception):
-    def __init__(self, message="Email not verified"):
+class AccountNotVerified(Exception):
+    def __init__(self, message="Account not verified"):
+        self.status_code = status.HTTP_400_BAD_REQUEST
+        self.message = message
+        super().__init__(self.message)
+
+
+class AccountAlreadyVerified(Exception):
+    def __init__(self, message="Account already verified"):
         self.status_code = status.HTTP_400_BAD_REQUEST
         self.message = message
         super().__init__(self.message)

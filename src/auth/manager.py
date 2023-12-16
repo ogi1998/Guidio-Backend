@@ -1,7 +1,8 @@
 from fastapi import Request
 
 from auth import schemas, service
-from auth.exceptions import InvalidCredentials, EmailNotVerified, UserAlreadyExists
+from auth.exceptions import InvalidCredentials, AccountNotVerified, UserAlreadyExists, \
+    UserDoesNotExist, AccountAlreadyVerified
 from core.models import User
 
 
@@ -25,7 +26,7 @@ class AuthenticationManager:
         except InvalidCredentials as e:
             raise e
         if not user.is_active:
-            raise EmailNotVerified
+            raise AccountNotVerified
         token: str = await self.__auth_service.create_auth_token(user.user_id)
         return user, token
 
@@ -38,3 +39,15 @@ class AuthenticationManager:
         if not user or not passwords_match:
             raise InvalidCredentials
         return user
+
+    async def send_verification_email(self, request: Request, email: str) -> None:
+        user: User = await self.__auth_service.get_user_by_email(email)
+        if user is None:
+            raise UserDoesNotExist
+        elif user.is_active:
+            raise AccountAlreadyVerified
+        try:
+            await self.__auth_service.send_activation_email_to_user(request, user)
+        except Exception as e:
+            raise e
+        return None
