@@ -10,10 +10,10 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from auth import schemas
-from auth.dependencies import is_valid_token
+from auth.dependencies import get_decoded_token
 from auth.exceptions import invalid_credentials_exception, token_exception, user_inactive_exception
 from core.constants import ACTIVATE_ACCOUNT_SUBJECT
-from core.dependencies import DBDependency, get_db
+from core.dependencies import get_db
 from core.models import User, UserDetail
 from core.settings import AUTH_TOKEN
 from src.config import SECRET_KEY, ALGORITHM, TOKEN_EXP_MINUTES
@@ -112,44 +112,35 @@ class AuthenticationService:
         encode.update({"exp": expire})
         return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
 
+    # TODO: Move this function to users
+    async def get_current_user(self, token: str):
+        try:
+            payload = await get_decoded_token(token)
+        except ValueError as e:
+            raise e
 
-# TODO: Move this function to users
-async def get_current_user(token: str, db: Session):
-    """Get current user object if jwt is valid
-
-    Args:
-        token (str): JWT encoded token
-        db (Session): database session
-
-    Returns:
-        User object or exception
-    """
-    try:
-        payload = await is_valid_token(token)
         user_id_base64 = payload.get("sub")
         user_id = int(base64.b64decode(user_id_base64).decode('utf-8'))
         if user_id is None:
             raise await invalid_credentials_exception()
-        user: User = db.query(User).get(user_id)
+        user: User = await self.get_user_by_id(user_id)
         if user is None:
             raise await invalid_credentials_exception()
         return user
-    except ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token expired")
-    except JWTError:
-        raise await token_exception()
+
+    # TODO: Move this function to users
+    async def get_current_active_user(self, request: Request, db=DBDependency):
+        current_user = await self.get_current_user(request.cookies.get(AUTH_TOKEN), db)
+        if not current_user.is_active:
+            raise await user_inactive_exception()
+        return current_user
+
+    # TODO: Move this function to users
+    async def activate_user(self, user: User) -> None:
+        user.is_active = True
+        self.__db.commit()
+        return
 
 
-# TODO: Move this function to users
-async def get_current_active_user(request: Request, db=DBDependency):
-    current_user = await get_current_user(request.cookies.get(AUTH_TOKEN), db)
-    if not current_user.is_active:
-        raise await user_inactive_exception()
-    return current_user
-
-
-# TODO: Move this function to users
-async def activate_user(user: User, db: Session) -> None:
-    user.is_active = True
-    db.commit()
-    return
+    async def get_user_by_id(self, user_id: int):
+        return self.__db.query(User).get(user_id)

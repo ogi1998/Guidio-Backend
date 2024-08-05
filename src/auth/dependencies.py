@@ -1,17 +1,17 @@
 import os
 
-from fastapi import HTTPException, status, Depends
+from fastapi import Depends
 from jose import jwt, JOSEError
 
 
-async def is_valid_token(token: str) -> dict:
+async def get_decoded_token(token: str) -> dict:
     if not isinstance(token, str):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+        raise ValueError
     try:
         payload = jwt.decode(token, key=os.getenv("SECRET_KEY"), algorithms=os.getenv("ALGORITHM"))
         return payload
     except JOSEError as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+        raise e
 
 
-ValidToken = Depends(is_valid_token)
+ValidToken = Depends(get_decoded_token)  # TODO: Remove when there is no usage

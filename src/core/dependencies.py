@@ -12,4 +12,4 @@ def get_db():
         db.close()
 
 
-DBDependency: Session = Depends(get_db)
+DBDependency: Session = Depends(get_db)  # TODO: remove this when there is no usage
