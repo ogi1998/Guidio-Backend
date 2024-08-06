@@ -6,7 +6,7 @@ from auth.service import AuthenticationService
 # from auth.service import auth_service.get_current_active_user
 # from auth.service import verify_password # TODO: verify_pass.. is inside class
 from core.dependencies import get_db
-from core.exceptions import non_existent_page_exception
+from core.exceptions import PageNotFoundException
 from core.models import User
 from core.settings import AUTH_TOKEN
 from users import service, schemas
@@ -33,7 +33,7 @@ async def get_instructors(page: int = Query(default=1, ge=1, description="Page t
                           db: Session = Depends(get_db)) -> schemas.UserReadSchemaWithPages:
     instructors = await service.get_paginated_instructors(db, page - 1, page_size)
     if page > instructors.pages:
-        raise non_existent_page_exception()
+        raise PageNotFoundException()
     return instructors
 
 
@@ -48,7 +48,7 @@ async def search_instructors(search: str,
                              db: Session = Depends(get_db)):
     total_pages = await service.get_number_of_instructors_from_search(db, search, page_size)
     if page > total_pages:
-        raise non_existent_page_exception()
+        raise PageNotFoundException()
     instructors = await service.get_paginated_instructors_by_search(db, page=page - 1,
                                                                     page_size=page_size,
                                                                     search=search)

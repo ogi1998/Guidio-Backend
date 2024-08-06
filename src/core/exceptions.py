@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status
+from fastapi import status
 
 
 class BaseCustomException(Exception):
@@ -8,7 +8,6 @@ class BaseCustomException(Exception):
         super().__init__(self.message)
 
 
-def non_existent_page_exception():
-    return HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Requested a non-existent page", )
+class PageNotFoundException(BaseCustomException):
+    def __init__(self, message: str = "Page not found"):
+        super().__init__(message, status_code=status.HTTP_404_NOT_FOUND)

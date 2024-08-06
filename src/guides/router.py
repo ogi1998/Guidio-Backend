@@ -5,7 +5,7 @@ from auth.exceptions import invalid_credentials_exception
 from auth.service import AuthenticationService
 from core.dependencies import get_db
 # from auth.service import auth_service.auth_service.get_current_active_user
-from core.exceptions import non_existent_page_exception
+from core.exceptions import PageNotFoundException
 from core.models import User
 from guides import schemas
 from guides import service
@@ -34,7 +34,7 @@ async def get_list_of_guides(db: Session = Depends(get_db),
     if not guides.guides:
         raise await guides_not_found_exception()
     if page > guides.pages:
-        raise await non_existent_page_exception()
+        raise PageNotFoundException()
     return schemas.GuideListReadSchema(pages=guides.pages, guides=guides.guides)
 
 
@@ -137,7 +137,7 @@ async def get_guides_by_title(title: str,
     if not guides.guides:
         raise await guides_not_found_exception()
     if page > guides.pages:
-        raise await non_existent_page_exception()
+        raise PageNotFoundException()
     return guides
 
 
@@ -159,7 +159,7 @@ async def get_guides_by_user_id(user_id: int,
     if not guides.guides:
         raise await guides_not_found_exception()
     if page > guides.pages:
-        raise await non_existent_page_exception()
+        raise PageNotFoundException()
     return schemas.GuideListReadSchema(pages=guides.pages, guides=guides.guides)
 
 
