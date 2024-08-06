@@ -37,7 +37,7 @@ async def send_mail(subject: str, recipients: list[EmailStr], body: Dict[str, An
         await fm.send_message(message, template_name=template_name)
         logging.info("Email sent successfully")
     except Exception as e:
-        logging.error(f"Error sending email: {str(e)}")
+        logging.error(f"Sending email failed: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Sending email failed"

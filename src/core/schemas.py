@@ -2,7 +2,7 @@ import re
 from typing import Dict, Any
 
 from humps.camel import case
-from pydantic import BaseModel as PydanticBaseModel, Field, validator, EmailStr
+from pydantic import BaseModel as PydanticBaseModel, Field, EmailStr, field_validator
 
 
 class BaseModelSchema(PydanticBaseModel):
@@ -14,7 +14,7 @@ class BaseModelSchema(PydanticBaseModel):
 class UserPasswordSchema(BaseModelSchema):
     password: str = Field(min_length=8)
 
-    @validator('password')
+    @field_validator('password')
     def check_password(cls, password: str):
         if re.search('[0-9]', password) is None:
             raise ValueError("Make sure password contains a number")
