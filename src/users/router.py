@@ -1,10 +1,8 @@
 from fastapi import APIRouter, Depends, status, HTTPException, Response, UploadFile, Query
 from sqlalchemy.orm import Session
 
-from auth.exceptions import invalid_credentials_exception
+from auth.exceptions import InvalidCredentialsException
 from auth.service import AuthenticationService
-# from auth.service import auth_service.get_current_active_user
-# from auth.service import verify_password # TODO: verify_pass.. is inside class
 from core.dependencies import get_db
 from core.exceptions import PageNotFoundException
 from core.models import User
@@ -158,7 +156,8 @@ async def get_user_profile_by_id(user_id: int, db: Session = Depends(get_db)):
 @router.put(path='/{user_id}',
             description="Update user profile",
             response_model=schemas.UserReadSchema)
-async def update_user_profile(user_id: int, data: schemas.UserProfileUpdateSchema, db: Session = Depends(get_db),
+async def update_user_profile(user_id: int, data: schemas.UserProfileUpdateSchema,
+                              db: Session = Depends(get_db),
                               user: User = Depends(auth_service.is_profile_active)):
     if user_id != user.user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
@@ -177,7 +176,7 @@ async def update_user_profile(user_id: int, data: schemas.UserProfileUpdateSchem
 async def delete_user_profile(user_id: int, response: Response, db: Session = Depends(get_db),
                               user: User = Depends(auth_service.is_profile_active)):
     if not user or user_id != user.user_id:
-        raise await invalid_credentials_exception()
+        raise InvalidCredentialsException()
     response.delete_cookie(AUTH_TOKEN)
     return await service.delete_user_profile(db, user_id)
 
@@ -191,7 +190,7 @@ async def update_user_password(user_id: int,
                                db: Session = Depends(get_db),
                                user: User = Depends(auth_service.is_profile_active)):
     if user_id != user.user_id:
-        raise await invalid_credentials_exception()
+        raise InvalidCredentialsException()
     if not await verify_password(data.current_password, user.password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Invalid password")

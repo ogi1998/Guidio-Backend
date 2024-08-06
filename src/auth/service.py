@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from auth import schemas
 from auth.dependencies import get_decoded_token
-from auth.exceptions import UnauthorizedException, UserDoesNotExist
+from auth.exceptions import UnauthorizedException, UserDoesNotExistException
 from core.constants import ACTIVATE_ACCOUNT_SUBJECT
 from core.dependencies import get_db
 from core.models import User, UserDetail
@@ -64,7 +64,7 @@ class AuthenticationService:
             raise UnauthorizedException()
         user = await self.get_user_by_id(user_id)
         if user is None:
-            raise UserDoesNotExist()
+            raise UserDoesNotExistException()
         return user
 
     async def is_profile_active(self, request: Request):
