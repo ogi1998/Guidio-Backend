@@ -4,6 +4,7 @@ from starlette.staticfiles import StaticFiles
 
 from config import ENVIRONMENT, SHOW_DOCS_ENVIRONMENT
 import core.service as core_service
+from core.middlewares import ExceptionHandlingMiddleware
 from auth import router as auth_router
 from core.constants import MEDIA_ROOT
 from guides import router as guides_router
@@ -20,6 +21,7 @@ def is_debug() -> bool:
 
 
 app = FastAPI(**app_configs)
+app.add_middleware(ExceptionHandlingMiddleware)
 core_service.create_media_root()
 app.mount("/media", StaticFiles(directory=MEDIA_ROOT), name="media")
 app.include_router(auth_router.router,

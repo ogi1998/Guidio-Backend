@@ -1,15 +1,18 @@
 from fastapi import APIRouter, Depends, status, HTTPException, Response, UploadFile, Query
 
 from auth.exceptions import invalid_credentials_exception
-from auth.service import get_current_active_user
+from auth.service import AuthenticationService
+# from auth.service import auth_service.get_current_active_user
 # from auth.service import verify_password # TODO: verify_pass.. is inside class
 from core.dependencies import DBDependency
 from core.exceptions import non_existent_page_exception
 from core.models import User
 from core.settings import AUTH_TOKEN
 from users import service, schemas
+from utils.auth import verify_password
 
 router = APIRouter()
+auth_service = AuthenticationService()
 
 
 @router.get(path="/professions",
@@ -55,7 +58,7 @@ async def search_instructors(search: str,
             description="Get user avatar",
             response_model=schemas.UserAvatarSchema,
             status_code=status.HTTP_200_OK)
-async def get_avatar(user: User = Depends(get_current_active_user)):
+async def get_avatar(user: User = Depends(auth_service.is_profile_active)):
     avatar = await service.get_avatar(user)
     if avatar is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -68,7 +71,7 @@ async def get_avatar(user: User = Depends(get_current_active_user)):
              response_model=schemas.UserReadSchema,
              status_code=status.HTTP_201_CREATED)
 async def create_avatar(file: UploadFile, db=DBDependency,
-                        user: User = Depends(get_current_active_user)):
+                        user: User = Depends(auth_service.is_profile_active)):
     saved = await service.save_avatar(file, db, user)
     return saved
 
@@ -78,7 +81,7 @@ async def create_avatar(file: UploadFile, db=DBDependency,
             response_model=schemas.UserReadSchema,
             status_code=status.HTTP_200_OK)
 async def update_avatar(file: UploadFile, db=DBDependency,
-                        user: User = Depends(get_current_active_user)):
+                        user: User = Depends(auth_service.is_profile_active)):
     updated = await service.save_avatar(file, db, user)
     return updated
 
@@ -86,7 +89,8 @@ async def update_avatar(file: UploadFile, db=DBDependency,
 @router.delete(path="/avatar",
                description="Delete user avatar",
                status_code=status.HTTP_204_NO_CONTENT)
-async def delete_avatar(db=DBDependency, user: User = Depends(get_current_active_user)):
+async def delete_avatar(db=DBDependency,
+                        user: User = Depends(auth_service.is_profile_active)):
     avatar = user.user_details.avatar
     if avatar is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -99,7 +103,7 @@ async def delete_avatar(db=DBDependency, user: User = Depends(get_current_active
             description="Get user cover image",
             response_model=schemas.UserCoverImageSchema,
             status_code=status.HTTP_200_OK)
-async def get_cover_image(user: User = Depends(get_current_active_user)):
+async def get_cover_image(user: User = Depends(auth_service.is_profile_active)):
     image = await service.get_cover_image(user)
     if image is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -112,7 +116,7 @@ async def get_cover_image(user: User = Depends(get_current_active_user)):
              response_model=schemas.UserReadSchema,
              status_code=status.HTTP_201_CREATED)
 async def create_cover_image(file: UploadFile, db=DBDependency,
-                             user: User = Depends(get_current_active_user)):
+                             user: User = Depends(auth_service.is_profile_active)):
     saved = await service.save_cover_image(file, db, user)
     return saved
 
@@ -122,7 +126,7 @@ async def create_cover_image(file: UploadFile, db=DBDependency,
             response_model=schemas.UserReadSchema,
             status_code=status.HTTP_200_OK)
 async def update_cover_image(file: UploadFile, db=DBDependency,
-                             user: User = Depends(get_current_active_user)):
+                             user: User = Depends(auth_service.is_profile_active)):
     updated = await service.save_cover_image(file, db, user)
     return updated
 
@@ -130,7 +134,8 @@ async def update_cover_image(file: UploadFile, db=DBDependency,
 @router.delete(path="/cover_image",
                description="Delete user cover image",
                status_code=status.HTTP_204_NO_CONTENT)
-async def delete_cover_image(db=DBDependency, user: User = Depends(get_current_active_user)):
+async def delete_cover_image(db=DBDependency,
+                             user: User = Depends(auth_service.is_profile_active)):
     image = user.user_details.cover_image
     if image is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -153,7 +158,7 @@ async def get_user_profile_by_id(user_id: int, db=DBDependency):
             description="Update user profile",
             response_model=schemas.UserReadSchema)
 async def update_user_profile(user_id: int, data: schemas.UserProfileUpdateSchema, db=DBDependency,
-                              user: User = Depends(get_current_active_user)):
+                              user: User = Depends(auth_service.is_profile_active)):
     if user_id != user.user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
     if data.user_details.profession_id:
@@ -169,7 +174,7 @@ async def update_user_profile(user_id: int, data: schemas.UserProfileUpdateSchem
                description="Delete user profile",
                status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user_profile(user_id: int, response: Response, db=DBDependency,
-                              user: User = Depends(get_current_active_user)):
+                              user: User = Depends(auth_service.is_profile_active)):
     if not user or user_id != user.user_id:
         raise await invalid_credentials_exception()
     response.delete_cookie(AUTH_TOKEN)
@@ -183,7 +188,7 @@ async def delete_user_profile(user_id: int, response: Response, db=DBDependency,
 async def update_user_password(user_id: int,
                                data: schemas.UserPasswordUpdateSchema,
                                db=DBDependency,
-                               user: User = Depends(get_current_active_user)):
+                               user: User = Depends(auth_service.is_profile_active)):
     if user_id != user.user_id:
         raise await invalid_credentials_exception()
     if not await verify_password(data.current_password, user.password):

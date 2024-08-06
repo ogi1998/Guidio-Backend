@@ -1,24 +1,31 @@
 from fastapi import HTTPException, status
 
-
-class UserAlreadyExists(Exception):
-    def __init__(self, message="User already exists"):
-        self.message = message
-        super().__init__(self.message)
+from core.exceptions import BaseCustomException
 
 
-class UserDoesNotExist(Exception):
+class UnauthorizedException(BaseCustomException):
+    def __init__(self, message="Unauthorized"):
+        super().__init__(message, status_code=status.HTTP_401_UNAUTHORIZED)
+
+
+class UserDoesNotExist(BaseCustomException):
     def __init__(self, message="User does not exist"):
-        self.status_code = status.HTTP_404_NOT_FOUND
-        self.message = message
-        super().__init__(self.message)
+        super().__init__(message, status_code=status.HTTP_404_NOT_FOUND)
 
 
-class InvalidCredentials(Exception):
+class UserAlreadyExists(BaseCustomException):
+    def __init__(self, message="User already exists"):
+        super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST)
+
+
+class TokenExpiredException(BaseCustomException):
+    def __init__(self, message="Token has expired"):
+        super().__init__(message, status_code=status.HTTP_403_FORBIDDEN)
+
+
+class InvalidCredentials(BaseCustomException):
     def __init__(self, message="Invalid credentials"):
-        self.status_code = status.HTTP_401_UNAUTHORIZED
-        self.message = message
-        super().__init__(self.message)
+        super().__init__(message, status_code=status.HTTP_401_UNAUTHORIZED)
 
 
 class AccountNotVerified(Exception):
@@ -28,11 +35,9 @@ class AccountNotVerified(Exception):
         super().__init__(self.message)
 
 
-class AccountAlreadyVerified(Exception):
+class AccountAlreadyVerified(BaseCustomException):
     def __init__(self, message="Account already verified"):
-        self.status_code = status.HTTP_400_BAD_REQUEST
-        self.message = message
-        super().__init__(self.message)
+        super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST)
 
 
 class PasswordsDoNotMatch(Exception):
@@ -59,13 +64,3 @@ async def user_inactive_exception():
         detail="Inactive user",
     )
     return response
-
-
-async def token_exception():
-    """Return HTTPException 401 for invalid token"""
-    token_exception_response = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid authorization token",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    return token_exception_response

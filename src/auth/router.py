@@ -1,12 +1,8 @@
-from fastapi import APIRouter, HTTPException, status, Request, Response, Depends
+from fastapi import APIRouter, status, Request, Response, Depends
 from pydantic import EmailStr
 from starlette.responses import JSONResponse
 
-from auth import schemas, service, manager
-from auth.exceptions import InvalidCredentials, AccountNotVerified, UserAlreadyExists, \
-    UserDoesNotExist, AccountAlreadyVerified
-from auth.service import get_current_user, get_current_active_user
-from core.dependencies import DBDependency
+from auth import schemas, manager
 from core.models import User
 from core.settings import AUTH_TOKEN
 from users.schemas import UserIDSchema, UserReadSchema
@@ -18,26 +14,14 @@ auth_manager = manager.AuthenticationManager()
 @router.post(path="/send_verification_email",
              status_code=status.HTTP_200_OK)
 async def send_verification_email(request: Request, email: EmailStr):
-    try:
-        await auth_manager.send_verification_email(request, email)
-    except UserDoesNotExist as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message)
-    except AccountAlreadyVerified as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error sending email. Please try again later.")
+    await auth_manager.send_verification_email(request, email)
     return JSONResponse(content={"detail": "Activation email sent"})
 
 
-@router.get(path="/verify_email",
+@router.get(path="/activate_user",
             status_code=status.HTTP_200_OK)
-async def verify_email(token: str, db=DBDependency):
-    user = await get_current_user(token, db)
-    if user is None or user.is_active:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification failed")
-    await service.activate_user(user, db)
+async def activate_user(token: str):
+    await auth_manager.activate_user(token)
     return JSONResponse(content={"detail": "Activation successful"}, status_code=status.HTTP_200_OK)
 
 
@@ -45,36 +29,29 @@ async def verify_email(token: str, db=DBDependency):
              status_code=status.HTTP_201_CREATED,
              response_model=UserIDSchema)
 async def register_user(request: Request, data: schemas.RegistrationSchemaUser) -> UserIDSchema:
-    try:
-        user_id: int = await auth_manager.register_user(request, data)
-    except UserAlreadyExists as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
+    user_id: int = await auth_manager.register_user(request, data)
     return UserIDSchema(user_id=user_id)
 
 
 @router.post(path="/login",
              response_model=UserReadSchema)
 async def login_user(data: schemas.LoginSchema, response: Response) -> UserReadSchema:
-    try:
-        user, token = await auth_manager.login_user(data.email, data.password)
-    except InvalidCredentials as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message)
-    except AccountNotVerified as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message)
+    user, token = await auth_manager.login_user(data.email, data.password)
     response.set_cookie(key=AUTH_TOKEN, value=token)
     return user
 
 
 @router.post(path='/logout')
 async def logout_user():
-    response = JSONResponse(content={"message": "User logged out successfully"})
+    response = JSONResponse(content={"message": "Logged out successfully"},
+                            status_code=status.HTTP_200_OK)
     response.delete_cookie(AUTH_TOKEN)
-    response.status_code = status.HTTP_200_OK
     return response
 
 
 @router.get(path="/user_info",
             description="Get user object from token",
             response_model=UserReadSchema)
-async def get_user_from_token(user: User = Depends(get_current_active_user)) -> UserReadSchema:
+async def get_user_from_token(
+        user: User = Depends()) -> UserReadSchema:
     return user

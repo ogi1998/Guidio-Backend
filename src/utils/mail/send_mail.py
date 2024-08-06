@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-from smtplib import SMTPException
 from typing import Dict, Any
 
 from fastapi import HTTPException, status
@@ -39,4 +38,7 @@ async def send_mail(subject: str, recipients: list[EmailStr], body: Dict[str, An
         logging.info("Email sent successfully")
     except Exception as e:
         logging.error(f"Error sending email: {str(e)}")
-        raise e
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Sending email failed"
+        )

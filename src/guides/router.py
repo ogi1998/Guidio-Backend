@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, status, HTTPException, Query, UploadFile
 
 from auth.exceptions import invalid_credentials_exception
-from auth.service import get_current_active_user
+from auth.service import AuthenticationService
+# from auth.service import auth_service.auth_service.get_current_active_user
 from core.dependencies import DBDependency
 from core.exceptions import non_existent_page_exception
 from core.models import User
@@ -11,6 +12,7 @@ from guides.constants import RetrieveOrder
 from guides.exceptions import not_instructor_exception, guides_not_found_exception
 
 router = APIRouter()
+auth_service = AuthenticationService()
 
 
 @router.get("",
@@ -41,7 +43,7 @@ async def get_list_of_guides(db=DBDependency,
              response_model=schemas.GuideReadSchema)
 async def create_guide(data: schemas.GuideCreateUpdateSchema,
                        db=DBDependency,
-                       user: User = Depends(get_current_active_user)):
+                       user: User = Depends(auth_service.is_profile_active)):
     if not user:
         raise await invalid_credentials_exception()
     if not user.user_details.is_instructor:
@@ -56,7 +58,7 @@ async def create_guide(data: schemas.GuideCreateUpdateSchema,
             response_model=schemas.GuideCoverImageSchema,
             status_code=status.HTTP_200_OK)
 async def get_cover_image(guide_id: int,
-                          user: User = Depends(get_current_active_user),
+                          user: User = Depends(auth_service.is_profile_active),
                           db=DBDependency):
     guide = await service.get_guide_by_id(db, guide_id, user)
     if not guide:
@@ -75,7 +77,7 @@ async def get_cover_image(guide_id: int,
 async def create_cover_image(guide_id: int,
                              file: UploadFile,
                              db=DBDependency,
-                             user: User = Depends(get_current_active_user)):
+                             user: User = Depends(auth_service.is_profile_active)):
     guide = await service.get_guide_by_id(db, guide_id, user)
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
@@ -92,7 +94,7 @@ async def create_cover_image(guide_id: int,
 async def update_cover_image(guide_id: int,
                              file: UploadFile,
                              db=DBDependency,
-                             user: User = Depends(get_current_active_user)):
+                             user: User = Depends(auth_service.is_profile_active)):
     guide = await service.get_guide_by_id(db, guide_id, user)
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
@@ -107,7 +109,7 @@ async def update_cover_image(guide_id: int,
                status_code=status.HTTP_204_NO_CONTENT)
 async def delete_cover_image(guide_id: int,
                              db=DBDependency,
-                             user: User = Depends(get_current_active_user)):
+                             user: User = Depends(auth_service.is_profile_active)):
     guide = await service.get_guide_by_id(db, guide_id, user)
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
@@ -147,7 +149,7 @@ async def get_guides_by_user_id(user_id: int,
                                 page_size: int = Query(default=50, ge=1, le=100,
                                                        description="Page size"),
                                 db=DBDependency,
-                                user: User = Depends(get_current_active_user)):
+                                user: User = Depends(auth_service.is_profile_active)):
     guides = await service.get_guides_by_user_id(db=db,
                                                  user_id=user_id,
                                                  page=page - 1,
@@ -166,7 +168,7 @@ async def get_guides_by_user_id(user_id: int,
             response_model=schemas.GuideReadSchema)
 async def get_guide_by_id(guide_id: int,
                           db=DBDependency,
-                          user: User = Depends(get_current_active_user)):
+                          user: User = Depends(auth_service.is_profile_active)):
     guide = await service.get_guide_by_id(db, guide_id, user)
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
@@ -179,7 +181,7 @@ async def get_guide_by_id(guide_id: int,
             response_model=schemas.GuideReadSchema)
 async def update_guide(guide_id: int, data: schemas.GuideCreateUpdateSchema,
                        db=DBDependency,
-                       user: User = Depends(get_current_active_user)):
+                       user: User = Depends(auth_service.is_profile_active)):
     guide = await service.get_guide_by_id(db, guide_id, user)
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
@@ -194,7 +196,7 @@ async def update_guide(guide_id: int, data: schemas.GuideCreateUpdateSchema,
                status_code=status.HTTP_204_NO_CONTENT)
 async def delete_guide(guide_id: int,
                        db=DBDependency,
-                       user: User = Depends(get_current_active_user)):
+                       user: User = Depends(auth_service.is_profile_active)):
     guide = await service.get_guide_by_id(db, guide_id, user)
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
