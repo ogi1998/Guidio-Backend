@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, status, HTTPException, Response, UploadFile, Query
+from sqlalchemy.orm import Session
 
 from auth.exceptions import invalid_credentials_exception
 from auth.service import AuthenticationService
 # from auth.service import auth_service.get_current_active_user
 # from auth.service import verify_password # TODO: verify_pass.. is inside class
-from core.dependencies import DBDependency
+from core.dependencies import get_db
 from core.exceptions import non_existent_page_exception
 from core.models import User
 from core.settings import AUTH_TOKEN
@@ -19,7 +20,7 @@ auth_service = AuthenticationService()
             description="Get professions based on search by name",
             response_model=list[schemas.ProfessionReadSchema])
 async def get_profession_by_name(name: str,
-                                 db=DBDependency):
+                                 db: Session = Depends(get_db)):
     professions = await service.get_professions_by_name(db, name)
     return professions
 
@@ -29,7 +30,7 @@ async def get_profession_by_name(name: str,
             response_model=schemas.UserReadSchemaWithPages)
 async def get_instructors(page: int = Query(default=1, ge=1, description="Page to request"),
                           page_size: int = Query(default=50, ge=1, le=100, description="Page size"),
-                          db=DBDependency) -> schemas.UserReadSchemaWithPages:
+                          db: Session = Depends(get_db)) -> schemas.UserReadSchemaWithPages:
     instructors = await service.get_paginated_instructors(db, page - 1, page_size)
     if page > instructors.pages:
         raise non_existent_page_exception()
@@ -44,7 +45,7 @@ async def search_instructors(search: str,
                              page: int = Query(default=1, ge=1, description="Page to request"),
                              page_size: int = Query(default=50, ge=1, le=100,
                                                     description="Page size"),
-                             db=DBDependency):
+                             db: Session = Depends(get_db)):
     total_pages = await service.get_number_of_instructors_from_search(db, search, page_size)
     if page > total_pages:
         raise non_existent_page_exception()
@@ -70,7 +71,7 @@ async def get_avatar(user: User = Depends(auth_service.is_profile_active)):
              description="Create user avatar",
              response_model=schemas.UserReadSchema,
              status_code=status.HTTP_201_CREATED)
-async def create_avatar(file: UploadFile, db=DBDependency,
+async def create_avatar(file: UploadFile, db: Session = Depends(get_db),
                         user: User = Depends(auth_service.is_profile_active)):
     saved = await service.save_avatar(file, db, user)
     return saved
@@ -80,7 +81,7 @@ async def create_avatar(file: UploadFile, db=DBDependency,
             description="Update user avatar",
             response_model=schemas.UserReadSchema,
             status_code=status.HTTP_200_OK)
-async def update_avatar(file: UploadFile, db=DBDependency,
+async def update_avatar(file: UploadFile, db: Session = Depends(get_db),
                         user: User = Depends(auth_service.is_profile_active)):
     updated = await service.save_avatar(file, db, user)
     return updated
@@ -89,7 +90,7 @@ async def update_avatar(file: UploadFile, db=DBDependency,
 @router.delete(path="/avatar",
                description="Delete user avatar",
                status_code=status.HTTP_204_NO_CONTENT)
-async def delete_avatar(db=DBDependency,
+async def delete_avatar(db: Session = Depends(get_db),
                         user: User = Depends(auth_service.is_profile_active)):
     avatar = user.user_details.avatar
     if avatar is None:
@@ -115,7 +116,7 @@ async def get_cover_image(user: User = Depends(auth_service.is_profile_active)):
              description="Create user cover image",
              response_model=schemas.UserReadSchema,
              status_code=status.HTTP_201_CREATED)
-async def create_cover_image(file: UploadFile, db=DBDependency,
+async def create_cover_image(file: UploadFile, db: Session = Depends(get_db),
                              user: User = Depends(auth_service.is_profile_active)):
     saved = await service.save_cover_image(file, db, user)
     return saved
@@ -125,7 +126,7 @@ async def create_cover_image(file: UploadFile, db=DBDependency,
             description="Update user cover image",
             response_model=schemas.UserReadSchema,
             status_code=status.HTTP_200_OK)
-async def update_cover_image(file: UploadFile, db=DBDependency,
+async def update_cover_image(file: UploadFile, db: Session = Depends(get_db),
                              user: User = Depends(auth_service.is_profile_active)):
     updated = await service.save_cover_image(file, db, user)
     return updated
@@ -134,7 +135,7 @@ async def update_cover_image(file: UploadFile, db=DBDependency,
 @router.delete(path="/cover_image",
                description="Delete user cover image",
                status_code=status.HTTP_204_NO_CONTENT)
-async def delete_cover_image(db=DBDependency,
+async def delete_cover_image(db: Session = Depends(get_db),
                              user: User = Depends(auth_service.is_profile_active)):
     image = user.user_details.cover_image
     if image is None:
@@ -147,7 +148,7 @@ async def delete_cover_image(db=DBDependency,
 @router.get(path="/{user_id}",
             description="Get user profile by id",
             response_model=schemas.UserReadSchema)
-async def get_user_profile_by_id(user_id: int, db=DBDependency):
+async def get_user_profile_by_id(user_id: int, db: Session = Depends(get_db)):
     user = await service.get_user_profile_by_id(user_id, db)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -157,7 +158,7 @@ async def get_user_profile_by_id(user_id: int, db=DBDependency):
 @router.put(path='/{user_id}',
             description="Update user profile",
             response_model=schemas.UserReadSchema)
-async def update_user_profile(user_id: int, data: schemas.UserProfileUpdateSchema, db=DBDependency,
+async def update_user_profile(user_id: int, data: schemas.UserProfileUpdateSchema, db: Session = Depends(get_db),
                               user: User = Depends(auth_service.is_profile_active)):
     if user_id != user.user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
@@ -173,7 +174,7 @@ async def update_user_profile(user_id: int, data: schemas.UserProfileUpdateSchem
 @router.delete(path='/{user_id}',
                description="Delete user profile",
                status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user_profile(user_id: int, response: Response, db=DBDependency,
+async def delete_user_profile(user_id: int, response: Response, db: Session = Depends(get_db),
                               user: User = Depends(auth_service.is_profile_active)):
     if not user or user_id != user.user_id:
         raise await invalid_credentials_exception()
@@ -187,7 +188,7 @@ async def delete_user_profile(user_id: int, response: Response, db=DBDependency,
             response_model=schemas.UserReadSchema)
 async def update_user_password(user_id: int,
                                data: schemas.UserPasswordUpdateSchema,
-                               db=DBDependency,
+                               db: Session = Depends(get_db),
                                user: User = Depends(auth_service.is_profile_active)):
     if user_id != user.user_id:
         raise await invalid_credentials_exception()
