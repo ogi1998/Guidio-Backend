@@ -4,13 +4,12 @@ from sqlalchemy.orm import Session
 from auth.exceptions import invalid_credentials_exception
 from auth.service import AuthenticationService
 from core.dependencies import get_db
-# from auth.service import auth_service.auth_service.get_current_active_user
 from core.exceptions import PageNotFoundException
 from core.models import User
 from guides import schemas
 from guides import service
 from guides.constants import RetrieveOrder
-from guides.exceptions import not_instructor_exception, guides_not_found_exception
+from guides.exceptions import GuidesNotFound, NotInstructorException
 
 router = APIRouter()
 auth_service = AuthenticationService()
@@ -32,7 +31,7 @@ async def get_list_of_guides(db: Session = Depends(get_db),
                                               sort_order=order,
                                               published_only=True)
     if not guides.guides:
-        raise await guides_not_found_exception()
+        raise GuidesNotFound()
     if page > guides.pages:
         raise PageNotFoundException()
     return schemas.GuideListReadSchema(pages=guides.pages, guides=guides.guides)
@@ -48,7 +47,7 @@ async def create_guide(data: schemas.GuideCreateUpdateSchema,
     if not user:
         raise await invalid_credentials_exception()
     if not user.user_details.is_instructor:
-        raise await not_instructor_exception()
+        raise NotInstructorException()
     prepared_data = await service.prepare_guide_data(data)
     guide = await service.save_guide(db, prepared_data, user_id=user.user_id)
     return guide
@@ -135,7 +134,7 @@ async def get_guides_by_title(title: str,
                               db: Session = Depends(get_db)):
     guides = await service.search_guides(db, title, page=page - 1, page_size=page_size)
     if not guides.guides:
-        raise await guides_not_found_exception()
+        raise GuidesNotFound()
     if page > guides.pages:
         raise PageNotFoundException()
     return guides
@@ -157,7 +156,7 @@ async def get_guides_by_user_id(user_id: int,
                                                  page_size=page_size,
                                                  user=user)
     if not guides.guides:
-        raise await guides_not_found_exception()
+        raise GuidesNotFound()
     if page > guides.pages:
         raise PageNotFoundException()
     return schemas.GuideListReadSchema(pages=guides.pages, guides=guides.guides)
@@ -187,7 +186,7 @@ async def update_guide(guide_id: int, data: schemas.GuideCreateUpdateSchema,
     if not guide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Guide not found")
     if not user.user_details.is_instructor:
-        raise await not_instructor_exception()
+        raise NotInstructorException()
     prepared_data = await service.prepare_guide_data(data)
     return await service.save_guide(db, prepared_data, user_id=user.user_id, guide=guide)
 

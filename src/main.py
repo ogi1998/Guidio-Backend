@@ -36,8 +36,7 @@ app.include_router(guides_router.router,
 
 
 def main():
-    debug = is_debug()
-    if debug:
+    if is_debug():
         uvicorn.run('main:app', host="0.0.0.0", port=8000, reload=True)
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
