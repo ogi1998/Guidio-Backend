@@ -1,6 +1,5 @@
 import os
 
-from fastapi import Depends
 from jose import jwt, JOSEError
 
 from auth.exceptions import UnauthorizedException, TokenExpiredException
@@ -15,6 +14,3 @@ async def get_decoded_token(token: str) -> dict:
         raise TokenExpiredException()
     except JOSEError:
         raise UnauthorizedException()
-
-
-ValidToken = Depends(get_decoded_token)  # TODO: Remove when there is no usage

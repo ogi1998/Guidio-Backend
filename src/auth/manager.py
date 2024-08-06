@@ -22,12 +22,9 @@ class AuthenticationManager:
         return new_user.user_id
 
     async def login_user(self, email: str, password: str) -> tuple[User, str]:
-        try:
-            user: User = await self.authenticate_user(email, password)
-        except InvalidCredentials as e:
-            raise e
+        user: User = await self.authenticate_user(email, password)
         if not user.is_active:
-            raise AccountNotVerified
+            raise AccountNotVerified()
         token: str = await create_auth_token(user.user_id)
         return user, token
 

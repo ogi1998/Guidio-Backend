@@ -28,23 +28,14 @@ class InvalidCredentials(BaseCustomException):
         super().__init__(message, status_code=status.HTTP_401_UNAUTHORIZED)
 
 
-class AccountNotVerified(Exception):
+class AccountNotVerified(BaseCustomException):
     def __init__(self, message="Account not verified"):
-        self.status_code = status.HTTP_400_BAD_REQUEST
-        self.message = message
-        super().__init__(self.message)
+        super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST)
 
 
 class AccountAlreadyVerified(BaseCustomException):
     def __init__(self, message="Account already verified"):
         super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST)
-
-
-class PasswordsDoNotMatch(Exception):
-    def __init__(self, message="Email not verified"):
-        self.status_code = status.HTTP_400_BAD_REQUEST
-        self.message = message
-        super().__init__(self.message)
 
 
 async def invalid_credentials_exception():
@@ -53,14 +44,5 @@ async def invalid_credentials_exception():
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid credentials",
         headers={"WWW-Authenticate": "Bearer"},
-    )
-    return response
-
-
-async def user_inactive_exception():
-    """Return HTTPException 400 as user is inactive"""
-    response = HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Inactive user",
     )
     return response
