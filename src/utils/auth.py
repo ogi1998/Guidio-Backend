@@ -4,10 +4,20 @@ import datetime
 from jose import jwt
 from passlib.context import CryptContext
 
+from auth.dependencies import verify_token
+from auth.exceptions import UnauthorizedException
 from src.config import SECRET_KEY, ALGORITHM
 from src.config import TOKEN_EXP_MINUTES
 
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+async def get_base64_subject_from_token(token: str) -> str:
+    payload = await verify_token(token)
+    sub_base64 = payload.get("sub")
+    if sub_base64 is None:
+        raise UnauthorizedException()
+    return sub_base64
 
 
 async def get_decoded_sub_from_base64(encoded_token: str) -> int | None:

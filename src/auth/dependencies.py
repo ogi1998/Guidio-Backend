@@ -5,7 +5,9 @@ from jose import jwt, JOSEError
 from auth.exceptions import UnauthorizedException, TokenExpiredException
 
 
-async def get_decoded_token(token: str) -> dict:
+async def verify_token(token: str) -> dict:
+    if not isinstance(token, str):
+        raise UnauthorizedException()
     try:
         payload = jwt.decode(token, key=os.getenv("SECRET_KEY"),
                              algorithms=[os.getenv("ALGORITHM")])

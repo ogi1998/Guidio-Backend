@@ -1,3 +1,4 @@
+from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
@@ -15,3 +16,6 @@ class DBSession:
 def get_db() -> Session:
     with DBSession() as db:
         yield db
+
+
+DBDependency: Session = Depends(get_db)
