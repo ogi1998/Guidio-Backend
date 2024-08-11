@@ -53,17 +53,6 @@ async def save_guide_featured_image(db: Session, guide_id: int, user: User,
     return saved
 
 
-async def update_guide_featured_image(guide_id: int, file: UploadFile, db: Session,
-                                      user: User) -> schemas.GuideCoverImageSchema:
-    guide: Guide = await service.get_guide_by_id(db, guide_id)
-    if not guide:
-        raise GuideNotFoundException()
-    elif not guide.user_id == user.user_id:
-        raise UnauthorizedException()
-    updated = await service.save_featured_image(file, db, guide)
-    return updated
-
-
 async def delete_guide_featured_image(guide_id: int, db: Session, user: User) -> None:
     guide = await service.get_guide_by_id(db, guide_id)
     if not guide:

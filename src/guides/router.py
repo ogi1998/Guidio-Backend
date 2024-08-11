@@ -67,7 +67,7 @@ async def update_featured_image(guide_id: int,
                                 file: UploadFile,
                                 db: Session = DBDependency,
                                 user: User = Depends(user_if_profile_is_active)):
-    return await manager.update_guide_featured_image(guide_id, file, db, user)
+    return await manager.save_guide_featured_image(db, guide_id, user, file)
 
 
 @router.delete(path="/cover_image",
