@@ -101,23 +101,28 @@ async def get_list_of_guides(db: Session,
         guides = guides.filter(Guide.user_id == user_id)
     pages: int = await count_number_of_pages(guides.count(), page_size)
     guides = guides.offset(offset).limit(page_size).all()
-    guides_list: list[GuideListSingleSchema] = []
-    for record in guides:
-        guides_list.append(GuideListSingleSchema(
-            guide_id=record[0],
-            title=record[1],
-            published=record[2],
-            created_at=record[3],
-            last_modified=record[4],
-            cover_image=record[5],
-            user=UserListReadSchema(
-                first_name=record[6],
-                last_name=record[7],
-                avatar=record[8],
-                user_id=record[9],
-                profession=record[10]
-            )
-        ))
+    guides_list = [
+        GuideListSingleSchema(
+            **{
+                "guide_id": record.guide_id,
+                "title": record.title,
+                "published": record.published,
+                "created_at": record.created_at,
+                "last_modified": record.last_modified,
+                "cover_image": record.cover_image,
+                "user": UserListReadSchema(
+                    **{
+                        "first_name": record.first_name,
+                        "last_name": record.last_name,
+                        "avatar": record.avatar,
+                        "user_id": record.user_id,
+                        "profession": record.profession,
+                    }
+                ),
+            }
+        )
+        for record in guides
+    ]
     return GuideListReadSchema(pages=pages, guides=guides_list)
 
 
@@ -141,12 +146,8 @@ async def get_guides_by_user_id(db: Session,
     return guides
 
 
-async def get_guide_by_id(db: Session, guide_id: int, user: User) -> Guide | None:
+async def get_guide_by_id(db: Session, guide_id: int) -> Guide | None:
     guide: Guide = db.query(Guide).get(guide_id)
-    if not guide:
-        return None
-    if not guide.user_id == user.user_id and not guide.published:
-        return None
     return guide
 
 
@@ -167,13 +168,7 @@ async def save_guide(db: Session,
     return guide
 
 
-async def get_cover_image(guide: Guide) -> str | None:
-    if not guide.cover_image:
-        return None
-    return guide.cover_image
-
-
-async def save_cover_image(file: UploadFile, db: Session, guide: Guide) -> Guide:
+async def save_featured_image(file: UploadFile, db: Session, guide: Guide) -> Guide:
     """Check if cover image exists and create it if not. If it exists then do the update"""
 
     old_cover_image = guide.cover_image
@@ -196,7 +191,7 @@ async def save_cover_image(file: UploadFile, db: Session, guide: Guide) -> Guide
     return guide
 
 
-async def delete_cover_image(db: Session, guide: Guide) -> None:
+async def delete_featured_image(db: Session, guide: Guide) -> None:
     image = guide.cover_image
 
     if image and os.path.exists(image):
@@ -208,7 +203,7 @@ async def delete_cover_image(db: Session, guide: Guide) -> None:
 
 
 async def delete_guide(db: Session, guide: Guide) -> None:
-    await delete_cover_image(db, guide)
+    await delete_featured_image(db, guide)
     db.delete(guide)
     db.commit()
     return None
