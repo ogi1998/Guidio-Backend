@@ -25,8 +25,7 @@ async def create_guide(db: Session, user: User, data: schemas.GuideCreateUpdateS
         raise InvalidCredentialsException()
     if not user.user_details.is_instructor:
         raise NotInstructorException()
-    prepared_data = await service.prepare_guide_data(data)
-    guide = await service.save_guide(db, prepared_data, user_id=user.user_id)
+    guide = await service.save_guide(db, data, user_id=user.user_id)
     return guide
 
 
@@ -101,8 +100,7 @@ async def update_guide(guide_id: int, data: schemas.GuideCreateUpdateSchema, db:
         raise UnauthorizedException()
     elif not user.user_details.is_instructor:
         raise NotInstructorException()
-    prepared_data = await service.prepare_guide_data(data)
-    return await service.save_guide(db, prepared_data, user_id=user.user_id, guide=guide)
+    return await service.save_guide(db, data, user_id=user.user_id, guide=guide)
 
 
 async def delete_guide(guide_id: int, db: Session, user: User):
