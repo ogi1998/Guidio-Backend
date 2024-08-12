@@ -1,52 +1,16 @@
 import os
 import shutil
-from datetime import datetime
-from pathlib import Path
 
 from fastapi import UploadFile
 from sqlalchemy import asc, desc, func
 from sqlalchemy.orm import Session, Query
 
-from core.constants import MEDIA_ROOT
 from core.models import Guide, User, Profession, UserDetail
 from core.service import count_number_of_pages
 from guides.constants import RetrieveOrder
 from guides.schemas import GuideCreateUpdateSchema, GuideListSingleSchema, GuideListReadSchema
 from users.schemas import UserListReadSchema
-
-
-def create_upload_path(directory: str, filename: str):
-    if not os.path.exists(directory):
-        Path(directory).mkdir(parents=True, exist_ok=True)
-    if not os.path.exists(directory + filename):
-        filename_parts = filename.split(".")
-        timestamp = str(int(datetime.now().timestamp()))
-        filename = "".join(filename_parts[:-1]) + "_" + timestamp + "." + filename_parts[-1]
-    open(f'{directory}{filename}', 'wb').close()
-    return directory + filename
-
-
-def cover_image_upload_path(guide_id: str, filename: str):
-    directory = f"{MEDIA_ROOT}/guides/{guide_id}/cover_image/"
-    path = create_upload_path(directory, filename)
-    path_to_save = 'media' + path.split('media')[1]
-    return path_to_save
-
-
-def count_pages(db: Session, page_size: int):
-    count_of_guides: int = db.query(Guide.guide_id) \
-        .order_by(desc(Guide.last_modified)).count()
-    division: tuple[int, int] = divmod(count_of_guides, page_size)
-    pages: int = division[0] + 1 if division[1] else division[0]
-    return pages
-
-
-def count_published_guides_pages(db: Session, page_size: int):
-    count_of_guides: int = db.query(Guide.guide_id).filter(Guide.published) \
-        .order_by(desc(Guide.last_modified)).count()
-    division: tuple[int, int] = divmod(count_of_guides, page_size)
-    pages: int = division[0] + 1 if division[1] else division[0]
-    return pages
+from utils.guides import get_featured_image_upload_path
 
 
 async def get_initial_list_of_guides(db: Session,
@@ -165,7 +129,7 @@ async def save_featured_image(file: UploadFile, db: Session, guide: Guide) -> Gu
 
     old_cover_image = guide.cover_image
 
-    file_path = cover_image_upload_path(str(guide.guide_id), file.filename)
+    file_path = get_featured_image_upload_path(str(guide.guide_id), file.filename)
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
