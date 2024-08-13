@@ -13,11 +13,6 @@ class GuideNotFoundException(BaseCustomException):
         super().__init__(message, status_code=status.HTTP_404_NOT_FOUND)
 
 
-class GuideFeaturedImageNotFoundException(BaseCustomException):
-    def __init__(self, message="Guide featured image not found"):
-        super().__init__(message, status_code=status.HTTP_404_NOT_FOUND)
-
-
 class NotInstructorException(BaseCustomException):
     """Raises when user is not an instructor"""
 

@@ -8,6 +8,6 @@ class BaseCustomException(Exception):
         super().__init__(self.message)
 
 
-class PageNotFoundException(BaseCustomException):
-    def __init__(self, message: str = "Page not found"):
+class ImageNotFoundException(BaseCustomException):
+    def __init__(self, message="Image not found"):
         super().__init__(message, status_code=status.HTTP_404_NOT_FOUND)

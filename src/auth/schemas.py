@@ -1,4 +1,4 @@
-from pydantic import EmailStr, Field
+from pydantic import EmailStr
 
 from core.schemas import UserPasswordSchema, BaseModelSchema
 from users import schemas

@@ -112,7 +112,7 @@ class UserPasswordUpdateSchema(UserPasswordSchema):
     class Config:
         json_schema_extra = {
             "example": {
-                "current_password": "MyPa$$123!",
-                "password": "MyPa$$123!",
+                "current_password": "examplePassword123!",
+                "password": "examplePassword123!",
             }
         }

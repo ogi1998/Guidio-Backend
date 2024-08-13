@@ -2,10 +2,11 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from auth.exceptions import InvalidCredentialsException, UnauthorizedException
+from core.exceptions import ImageNotFoundException
 from core.models import User, Guide
 from guides import service, schemas
 from guides.exceptions import GuidesNotFoundException, NotInstructorException, \
-    GuideFeaturedImageNotFoundException, GuideNotFoundException
+    GuideNotFoundException
 
 
 async def get_list_of_guides(db: Session, page: int, page_size: int,
@@ -37,7 +38,7 @@ async def get_guide_featured_image(db: Session, guide_id: int,
     elif not guide.user_id == user.user_id and not guide.published:
         raise UnauthorizedException()
     elif guide.cover_image is None:
-        raise GuideFeaturedImageNotFoundException()
+        raise ImageNotFoundException()
     return schemas.GuideCoverImageSchema(cover_image=guide.cover_image)
 
 
@@ -59,7 +60,7 @@ async def delete_guide_featured_image(guide_id: int, db: Session, user: User) ->
     elif not guide.user_id == user.user_id:
         raise UnauthorizedException()
     elif guide.cover_image is None:
-        raise GuideFeaturedImageNotFoundException()
+        raise ImageNotFoundException()
     await service.delete_featured_image(db, guide)
     return None
 
